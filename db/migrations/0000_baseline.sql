@@ -1,0 +1,1 @@
+-- Baseline migration: intentionally empty. Business tables arrive with the milestone 1 modules.

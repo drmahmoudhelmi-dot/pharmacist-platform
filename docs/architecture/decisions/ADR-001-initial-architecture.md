@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build a single TypeScript modular monolith: Next.js web app and a background worker from one codebase, PostgreSQL, S3-compatible private object storage, packaged as containers so the hosting provider and region can change without a rewrite. The product serves Egypt only, and production is hosted in Egypt (section 4); the specific provider is chosen after a two-week proof and counsel's review, before real users' data is stored. The first milestone delivers registration, professional verification, jobs and applications, and the admin verification queue — nothing else.
+Build a single TypeScript modular monolith: Next.js web app and a background worker from one codebase, PostgreSQL, S3-compatible private object storage, packaged as containers so the hosting provider and region can change without a rewrite. The product serves Egypt only. The production hosting provider and region are still open (section 4) and must be decided, with counsel's review, before real users' data is stored. The first milestone delivers registration, professional verification, jobs and applications, and the admin verification queue — nothing else.
 
 ## 1. Context
 
@@ -28,13 +28,13 @@ Build a single TypeScript modular monolith: Next.js web app and a background wor
 | Validation | Zod schemas shared by forms and server; server is authoritative | Rule 8 and section 6 of the skill |
 | Database | PostgreSQL (current stable major) | Relational integrity, exclusion constraints for shifts, `pg_trgm` and full-text for Arabic search |
 | ORM / migrations | Drizzle ORM + drizzle-kit, SQL migrations committed and reviewed | Thin, SQL-transparent, explicit migrations; raw SQL available for constraints and indexes |
-| Authentication | Better Auth (email/password + phone OTP, TOTP 2FA, sessions in Postgres) | Maintained library, no custom auth, supports MFA and organizations; data stays in our database |
+| Authentication | Better Auth (email/password with email verification, TOTP 2FA, sessions in Postgres) | Maintained library, no custom auth, supports MFA and organizations; data stays in our database |
 | Authorization | Own policy layer: one `can(actor, action, resource)` module per business module, called from every server action and route | Ownership and state checks are business rules, not library config |
 | Background jobs | pg-boss (queue in PostgreSQL), separate worker process | No Redis to run; transactional enqueue with the business write |
 | File storage | S3-compatible object storage: private bucket (documents), public bucket (approved listing images) behind a CDN; signed URLs only for private files | Portable across providers |
 | Image pipeline | sharp in the worker: re-encode, resize, strip metadata; ClamAV scan before visibility | Removes EXIF/GPS, blocks malicious uploads |
 | i18n / RTL | next-intl, Arabic default, Tailwind CSS with logical properties only | Arabic-first with direction-aware layout |
-| Email / SMS | Provider adapters behind an interface; Egyptian SMS provider for OTP | Swap vendors without touching business code; keep personal data sent to vendors minimal |
+| Email / SMS | Provider adapters behind an interface; transactional email provider for verification and notifications; SMS deferred until a feature needs it | Swap vendors without touching business code; keep personal data sent to vendors minimal |
 | Payments | Deferred to milestone 3; adapter for Paymob or Fawry | Not needed to validate the core product |
 | Testing | Vitest (unit + integration against real Postgres via Testcontainers), Playwright (E2E, Arabic RTL, mobile viewport) | Matches `references/testing.md` |
 | Observability | Structured JSON logs (pino), error monitoring with PII scrubbing, health endpoints | Matches `references/operations.md` |
@@ -78,7 +78,7 @@ Rules: pages never query the database directly; each module exposes services and
 | Microservices / Kubernetes | Not justified by team size or load (skill section 5). |
 | Dedicated search engine | Postgres trigram and full-text with Arabic normalization meets year-one targets. |
 
-## 4. Hosting region
+## 4. Hosting region (open)
 
 | Option | Pros | Cons |
 |---|---|---|
@@ -94,7 +94,7 @@ Development and staging use synthetic data only, so they can run anywhere while 
 
 In scope:
 
-1. Registration and login (email or phone with OTP), admin MFA, Arabic RTL UI.
+1. Registration and login by email (any provider, including Gmail) with email verification, admin MFA, Arabic RTL UI.
 2. Profiles: public profile and private professional details.
 3. Verification: submit syndicate card and national ID, reviewer queue, approve or reject with reason, verification states, document access log.
 4. Organizations: pharmacy owner creates a pharmacy and invites members.
@@ -124,9 +124,10 @@ Out of scope for M1: shifts (M2), sale and rental listings (M3), subscriptions a
 |---|---|
 | Market | Egypt only. No other countries, currencies or languages beyond Arabic (default) and English are planned. |
 | Stack | TypeScript / Next.js, as in section 2 |
-| Registration | Phone OTP via an Egyptian SMS provider, with the SMS abuse limits in `references/security-privacy.md`; email optional |
+| Platform | Web first: mobile-first responsive site, installable as a PWA. Native apps later, when shift alerts need reliable push, repeat usage is proven, or users ask for an app; then one cross-platform app (e.g. React Native/Expo) over a versioned API. |
+| Registration | Email (any provider, including Gmail) with email verification. "Sign in with Google" can be added in step 2 if wanted. Phone OTP is not used at launch, so no SMS provider is needed yet. |
 | Starting targets | 50,000 users in year one, 99.5 % monthly availability, p95 < 300 ms, RPO 1 h / RTO 4 h, OWASP ASVS Level 2 |
 | Data-protection counsel | Engage now, before any real user data is collected (PDPL grace period reported to end around 31 Oct 2026) |
-| Hosting region | Option A: in Egypt. Candidate providers (Huawei Cloud Cairo, local provider or telco cloud) go through the two-week proof in section 4; final provider recorded in a later ADR. Option B only if every Egyptian candidate fails the proof and counsel confirms the licence route. |
+| Hosting region | Open. Candidates: AWS or another established cloud (Option B, needs a PDPC cross-border transfer licence and a registered DPO), or Huawei Cloud Cairo / a local provider or telco cloud after the two-week proof (Option A). Decide with counsel before real users sign up; record the choice in a later ADR. |
 
 Development and staging use synthetic data only and are not bound by the hosting decision.
