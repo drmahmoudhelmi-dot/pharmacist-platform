@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans-arabic/400.css";
+@import "@fontsource/ibm-plex-sans-arabic/600.css";
+@import "@fontsource/ibm-plex-sans-arabic/700.css";
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  /* Contrast on white: text 17:1, primary 5.5:1 (WCAG AA). */
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-primary: #0f766e;
+  --color-primary-strong: #115e59;
+  --color-surface: #ffffff;
+  --color-canvas: #f8fafc;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-canvas);
+  }
+  body {
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-primary-strong);
+    outline-offset: 2px;
+  }
+}
