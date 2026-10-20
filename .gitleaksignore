@@ -1,0 +1,2 @@
+# Test-only fixture secret in a pre-merge commit; replaced by a per-run random value in 511d221.
+2f9452a0eff9483c2f7ffef3dc799ee864d38fec:tests/integration/helpers/auth-harness.ts:generic-api-key:14

@@ -19,6 +19,8 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/shared/db/migrate.ts",
+    "admin:grant-role": "tsx --env-file-if-exists=.env src/modules/identity/cli/role-admin.ts grant",
+    "admin:revoke-role": "tsx --env-file-if-exists=.env src/modules/identity/cli/role-admin.ts revoke",
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "bootstrap": "node scripts/bootstrap.mjs"
@@ -26,9 +28,11 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1153.0",
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "better-auth": "1.7.11",
     "drizzle-orm": "0.45.4",
     "next": "16.4.2",
     "next-intl": "4.14.9",
+    "nodemailer": "10.1.7",
     "pg": "8.23.1",
     "pino": "10.4.0",
     "react": "19.3.1",

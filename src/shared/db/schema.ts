@@ -1,3 +1,11 @@
-// Table definitions are added per module as milestones land (see src/modules/README.md).
-// Step 1 intentionally defines no business tables.
-export {};
+// Every table drizzle-kit should manage, re-exported from the owning module
+// (see src/modules/README.md). Modules never import each other's tables.
+export {
+  account,
+  rateLimit,
+  session,
+  twoFactor,
+  user,
+  userRole,
+  verification,
+} from "@/modules/identity/schema";
