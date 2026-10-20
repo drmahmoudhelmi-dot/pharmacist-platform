@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { Writable } from "node:stream";
 import {
   PostgreSqlContainer,
@@ -11,7 +12,8 @@ import type { EmailMessage } from "@/shared/email/sender";
 import { createLogger } from "@/shared/logging/logger";
 
 export const APP_URL = "http://localhost:3000";
-export const SECRET = "integration-test-secret-0123456789abcdef";
+// Generated per run so no secret-shaped literal lives in the repo.
+export const SECRET = randomBytes(32).toString("base64url");
 
 /** A browser-like cookie jar for one client. */
 export class CookieJar {
