@@ -66,6 +66,32 @@ export default async function AccountPage({ params, searchParams }: Props) {
             <p className="text-muted">{t("totpExplain")}</p>
             <TwoFactorPanel enabled={account.twoFactorEnabled} />
           </section>
+          <section
+            className="flex flex-col gap-2"
+            aria-labelledby="profile-heading"
+          >
+            <h2 id="profile-heading" className="text-lg font-semibold">
+              {t("profileHeading")}
+            </h2>
+            <TextLink href="/profile">{t("profileLink")}</TextLink>
+          </section>
+          <section
+            className="flex flex-col gap-2"
+            aria-labelledby="data-heading"
+          >
+            <h2 id="data-heading" className="text-lg font-semibold">
+              {t("dataHeading")}
+            </h2>
+            <p className="text-muted">{t("dataExplain")}</p>
+            {/* A plain link: the route answers with a JSON attachment. */}
+            <a
+              href="/api/account/export"
+              download
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-5 font-semibold text-primary hover:bg-primary hover:text-white"
+            >
+              {t("downloadData")}
+            </a>
+          </section>
           {account.isStaff ? (
             <TextLink href="/staff">{t("staffLink")}</TextLink>
           ) : null}

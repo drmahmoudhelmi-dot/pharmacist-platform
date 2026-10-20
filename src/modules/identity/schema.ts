@@ -30,7 +30,8 @@ const timestamptz = (name: string) =>
 
 export const user = pgTable("user", {
   id: id(),
-  // Kept empty until profiles (step 3); Better Auth requires the column.
+  // Always empty: Better Auth requires the column, but display names live in
+  // the profiles module (ADR-003).
   name: text("name").notNull(),
   // Stored lowercased by Better Auth.
   email: text("email").notNull().unique(),

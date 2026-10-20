@@ -4,7 +4,9 @@
     "tagline": "منصة مصرية للصيادلة: وظائف، توثيق مهني، وفرص عمل في مكان واحد.",
     "switchLanguage": "English",
     "signIn": "تسجيل الدخول",
-    "signUp": "إنشاء حساب"
+    "signUp": "إنشاء حساب",
+    "myProfile": "ملفي المهني",
+    "myAccount": "حسابي"
   },
   "Meta": {
     "title": "منصة الصيادلة",
@@ -164,7 +166,12 @@
     "signOutEverywhereConfirm": "سيتم تسجيل خروجك من هذا الجهاز وكل الأجهزة الأخرى. هل تريد المتابعة؟",
     "confirm": "نعم، تابع",
     "staffLink": "منطقة فريق العمل",
-    "codeLabel": "رمز التحقق"
+    "codeLabel": "رمز التحقق",
+    "profileHeading": "الملف المهني",
+    "profileLink": "ملفي المهني",
+    "dataHeading": "بياناتك",
+    "dataExplain": "نزّل نسخة من بيانات حسابك وملفك المهني بصيغة JSON.",
+    "downloadData": "تنزيل بياناتي"
   },
   "Staff": {
     "title": "منطقة فريق العمل",
@@ -177,5 +184,128 @@
     "verification_reviewer": "مراجعة التوثيق",
     "billing": "الفوترة",
     "super_admin": "المشرف العام"
+  },
+  "Profile": {
+    "title": "ملفي المهني",
+    "intro": "يظهر ملفك العام للأعضاء المسجلين فقط، ولا يظهر لمحركات البحث. البيانات الخاصة لا يراها أحد غيرك.",
+    "empty": "لم تنشئ ملفك المهني بعد. املأ البيانات التالية ثم احفظها.",
+    "visibilityStateLabel": "حالة الملف",
+    "visibilityState": {
+      "members": "ظاهر للأعضاء",
+      "hidden": "مخفي"
+    },
+    "viewPublic": "عرض ملفي كما يراه الأعضاء",
+    "profileHeading": "الملف العام",
+    "profileExplain": "يراه الأعضاء المسجلون عندما يكون ملفك ظاهرًا.",
+    "displayNameLabel": "الاسم الظاهر",
+    "displayNameHint": "من ٢ إلى ٨٠ حرفًا، بالعربية أو الإنجليزية.",
+    "headlineLabel": "المسمى المهني (اختياري)",
+    "headlineHint": "مثل: صيدلي مجتمع، أو طالب صيدلة بالفرقة الرابعة. حتى ١٢٠ حرفًا.",
+    "bioLabel": "نبذة عنك (اختياري)",
+    "bioHint": "حتى ١٠٠٠ حرف.",
+    "careerStageLabel": "المرحلة المهنية",
+    "careerStages": {
+      "student": "طالب صيدلة",
+      "graduate": "خريج",
+      "pharmacist": "صيدلي"
+    },
+    "choose": "اختر…",
+    "yearsLabel": "سنوات الخبرة",
+    "yearsHint": "رقم من ٠ إلى ٦٠. يمكنك الكتابة بالأرقام العربية.",
+    "governorateLabel": "المحافظة (اختياري)",
+    "governorateNone": "بدون تحديد",
+    "specialtiesLegend": "مجالات العمل (اختياري)",
+    "specialties": {
+      "community": "صيدلية مجتمع",
+      "hospital": "صيدلة المستشفيات",
+      "clinical": "الصيدلة الإكلينيكية",
+      "industry": "الصناعة الدوائية",
+      "medical_rep": "الدعاية الطبية",
+      "regulatory": "الشؤون التنظيمية",
+      "other": "مجال آخر"
+    },
+    "openToWorkLabel": "أبحث عن فرصة عمل",
+    "visibilityLegend": "من يرى ملفي العام",
+    "visibility": {
+      "members": "الأعضاء المسجلون",
+      "hidden": "أنا فقط"
+    },
+    "visibilityHints": {
+      "members": "يظهر لأي عضو مسجّل الدخول.",
+      "hidden": "لن يراه أي عضو آخر."
+    },
+    "saveProfile": "حفظ الملف",
+    "saving": "جارٍ الحفظ…",
+    "profileSaved": "تم حفظ ملفك.",
+    "detailsHeading": "بيانات خاصة",
+    "privateBadge": "خاص",
+    "detailsExplain": "لا يراها أحد غيرك. ستُستخدم لاحقًا عند تقديمك على وظيفة فقط.",
+    "phoneLabel": "رقم الموبايل (اختياري)",
+    "phoneHint": "رقم موبايل مصري، مثل ٠١٠١٢٣٤٥٦٧٨.",
+    "universityLabel": "الجامعة (اختياري)",
+    "graduationYearLabel": "سنة التخرج (اختياري)",
+    "graduationYearHint": "للطلاب: سنة التخرج المتوقعة.",
+    "saveDetails": "حفظ البيانات الخاصة",
+    "detailsSaved": "تم حفظ بياناتك الخاصة.",
+    "experienceHeading": "الخبرات",
+    "experienceExplain": "تظهر مع ملفك العام. حتى ٣٠ خبرة.",
+    "experienceEmpty": "لم تضف أي خبرة بعد.",
+    "experienceLimit": "وصلت إلى الحد الأقصى (٣٠ خبرة). احذف خبرة لإضافة أخرى.",
+    "addExperience": "إضافة خبرة",
+    "editExperience": "تعديل خبرة",
+    "titleLabel": "المسمى الوظيفي",
+    "employerLabel": "جهة العمل",
+    "startLegend": "تاريخ البداية",
+    "endLegend": "تاريخ النهاية",
+    "monthLabel": "الشهر",
+    "yearLabel": "السنة",
+    "currentLabel": "ما زلت أعمل هنا",
+    "present": "حتى الآن",
+    "saveExperience": "حفظ الخبرة",
+    "experienceAdded": "تمت إضافة الخبرة.",
+    "experienceUpdated": "تم تحديث الخبرة.",
+    "experienceDeleted": "تم حذف الخبرة.",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "deleting": "جارٍ الحذف…",
+    "cancel": "إلغاء",
+    "deleteConfirm": "هل تريد حذف هذه الخبرة؟ لا يمكن التراجع عن الحذف.",
+    "confirmDelete": "نعم، احذف",
+    "accountLink": "حسابي"
+  },
+  "ProfileErrors": {
+    "required": "هذا الحقل مطلوب.",
+    "tooShort": "النص أقصر من المطلوب.",
+    "tooLong": "النص أطول من الحد المسموح.",
+    "invalidNumber": "اكتب رقمًا صحيحًا بدون كسور، بالأرقام العربية أو الإنجليزية.",
+    "outOfRange": "الرقم خارج النطاق المسموح.",
+    "invalidChoice": "اختر قيمة من القائمة.",
+    "invalidPhone": "اكتب رقم موبايل مصريًا صحيحًا من ١١ رقمًا يبدأ بـ ٠١٠ أو ٠١١ أو ٠١٢ أو ٠١٥.",
+    "invalidMonth": "اختر شهرًا صحيحًا.",
+    "inFuture": "لا يمكن أن يكون التاريخ في المستقبل.",
+    "endBeforeStart": "تاريخ النهاية قبل تاريخ البداية.",
+    "validation": "راجع الحقول المميزة ثم حاول مرة أخرى.",
+    "forbidden": "ليست لديك صلاحية لهذا الإجراء.",
+    "notFound": "لم نجد هذه الخبرة، ربما حُذفت بالفعل. حدّث الصفحة.",
+    "limitReached": "وصلت إلى الحد الأقصى (٣٠ خبرة). احذف خبرة لإضافة أخرى.",
+    "generic": "حدث خطأ غير متوقع. حاول مرة أخرى بعد قليل.",
+    "network": "تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت وحاول مرة أخرى."
+  },
+  "ProfileView": {
+    "title": "الملف المهني",
+    "ownerNotice": "هذه معاينة لملفك كما يراه الأعضاء.",
+    "hiddenNotice": "ملفك مخفي حاليًا ولا يراه أحد غيرك.",
+    "editLink": "تعديل ملفي",
+    "yearsExperience": "{count, plural, =0 {أقل من سنة خبرة} one {سنة خبرة واحدة} two {سنتان من الخبرة} few {# سنوات خبرة} many {# سنة خبرة} other {# سنة خبرة}}",
+    "openToWork": "يبحث عن فرصة عمل",
+    "bioHeading": "نبذة",
+    "specialtiesHeading": "مجالات العمل",
+    "experienceHeading": "الخبرات",
+    "noExperience": "لا توجد خبرات مضافة.",
+    "present": "حتى الآن"
+  },
+  "NotFound": {
+    "title": "الصفحة غير موجودة",
+    "body": "لم نجد ما تبحث عنه. ربما الرابط غير صحيح أو لم يعد متاحًا."
   }
 }

@@ -4,7 +4,9 @@
     "tagline": "An Egyptian platform for pharmacists: jobs, professional verification and opportunities in one place.",
     "switchLanguage": "العربية",
     "signIn": "Sign in",
-    "signUp": "Create account"
+    "signUp": "Create account",
+    "myProfile": "My profile",
+    "myAccount": "My account"
   },
   "Meta": {
     "title": "Pharmacist Platform",
@@ -164,7 +166,12 @@
     "signOutEverywhereConfirm": "You will be signed out on this device and all others. Continue?",
     "confirm": "Yes, continue",
     "staffLink": "Staff area",
-    "codeLabel": "Verification code"
+    "codeLabel": "Verification code",
+    "profileHeading": "Professional profile",
+    "profileLink": "My profile",
+    "dataHeading": "Your data",
+    "dataExplain": "Download a copy of your account and profile data as JSON.",
+    "downloadData": "Download my data"
   },
   "Staff": {
     "title": "Staff area",
@@ -177,5 +184,128 @@
     "verification_reviewer": "Verification review",
     "billing": "Billing",
     "super_admin": "Super admin"
+  },
+  "Profile": {
+    "title": "My profile",
+    "intro": "Your public profile is shown to signed-in members only, never to search engines. Private details are visible to you alone.",
+    "empty": "You have not created your profile yet. Fill in the details below and save.",
+    "visibilityStateLabel": "Profile status",
+    "visibilityState": {
+      "members": "Visible to members",
+      "hidden": "Hidden"
+    },
+    "viewPublic": "View my profile as members see it",
+    "profileHeading": "Public profile",
+    "profileExplain": "Signed-in members see this when your profile is visible.",
+    "displayNameLabel": "Display name",
+    "displayNameHint": "2 to 80 characters, in Arabic or English.",
+    "headlineLabel": "Professional title (optional)",
+    "headlineHint": "For example: community pharmacist, or fourth-year pharmacy student. Up to 120 characters.",
+    "bioLabel": "About you (optional)",
+    "bioHint": "Up to 1,000 characters.",
+    "careerStageLabel": "Career stage",
+    "careerStages": {
+      "student": "Pharmacy student",
+      "graduate": "Graduate",
+      "pharmacist": "Pharmacist"
+    },
+    "choose": "Choose…",
+    "yearsLabel": "Years of experience",
+    "yearsHint": "A number from 0 to 60. Arabic digits are fine.",
+    "governorateLabel": "Governorate (optional)",
+    "governorateNone": "Not specified",
+    "specialtiesLegend": "Areas of work (optional)",
+    "specialties": {
+      "community": "Community pharmacy",
+      "hospital": "Hospital pharmacy",
+      "clinical": "Clinical pharmacy",
+      "industry": "Pharmaceutical industry",
+      "medical_rep": "Medical representative",
+      "regulatory": "Regulatory affairs",
+      "other": "Other"
+    },
+    "openToWorkLabel": "I am looking for work",
+    "visibilityLegend": "Who can see my public profile",
+    "visibility": {
+      "members": "Signed-in members",
+      "hidden": "Only me"
+    },
+    "visibilityHints": {
+      "members": "Any signed-in member can see it.",
+      "hidden": "No other member can see it."
+    },
+    "saveProfile": "Save profile",
+    "saving": "Saving…",
+    "profileSaved": "Your profile was saved.",
+    "detailsHeading": "Private details",
+    "privateBadge": "Private",
+    "detailsExplain": "Only you can see these. They will be used later only when you apply for a job.",
+    "phoneLabel": "Mobile number (optional)",
+    "phoneHint": "An Egyptian mobile number, like 01012345678.",
+    "universityLabel": "University (optional)",
+    "graduationYearLabel": "Graduation year (optional)",
+    "graduationYearHint": "Students: your expected graduation year.",
+    "saveDetails": "Save private details",
+    "detailsSaved": "Your private details were saved.",
+    "experienceHeading": "Experience",
+    "experienceExplain": "Shown with your public profile. Up to 30 entries.",
+    "experienceEmpty": "You have not added any experience yet.",
+    "experienceLimit": "You have reached the limit of 30 entries. Delete one to add another.",
+    "addExperience": "Add experience",
+    "editExperience": "Edit experience",
+    "titleLabel": "Job title",
+    "employerLabel": "Employer",
+    "startLegend": "Start date",
+    "endLegend": "End date",
+    "monthLabel": "Month",
+    "yearLabel": "Year",
+    "currentLabel": "I currently work here",
+    "present": "Present",
+    "saveExperience": "Save experience",
+    "experienceAdded": "Experience added.",
+    "experienceUpdated": "Experience updated.",
+    "experienceDeleted": "Experience deleted.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "deleteConfirm": "Delete this experience? This cannot be undone.",
+    "confirmDelete": "Yes, delete",
+    "accountLink": "My account"
+  },
+  "ProfileErrors": {
+    "required": "This field is required.",
+    "tooShort": "This is too short.",
+    "tooLong": "This is longer than allowed.",
+    "invalidNumber": "Enter a whole number, in Arabic or Western digits.",
+    "outOfRange": "This number is outside the allowed range.",
+    "invalidChoice": "Choose a value from the list.",
+    "invalidPhone": "Enter a valid 11-digit Egyptian mobile number starting with 010, 011, 012 or 015.",
+    "invalidMonth": "Choose a valid month.",
+    "inFuture": "The date cannot be in the future.",
+    "endBeforeStart": "The end date is before the start date.",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You are not allowed to do this.",
+    "notFound": "We could not find this entry; it may already be deleted. Refresh the page.",
+    "limitReached": "You have reached the limit of 30 entries. Delete one to add another.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your connection and try again."
+  },
+  "ProfileView": {
+    "title": "Professional profile",
+    "ownerNotice": "This is a preview of your profile as members see it.",
+    "hiddenNotice": "Your profile is hidden. No one else can see it.",
+    "editLink": "Edit my profile",
+    "yearsExperience": "{count, plural, =0 {Less than a year of experience} one {# year of experience} other {# years of experience}}",
+    "openToWork": "Looking for work",
+    "bioHeading": "About",
+    "specialtiesHeading": "Areas of work",
+    "experienceHeading": "Experience",
+    "noExperience": "No experience added.",
+    "present": "Present"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "body": "We could not find what you are looking for. The link may be wrong or no longer available."
   }
 }
