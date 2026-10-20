@@ -2,7 +2,7 @@
 
 Each module owns its tables and exposes services; other modules call those services, never its tables (ADR-001 section 2). Directories are created when a module gets its first real code.
 
-- `identity`: users, sessions, roles, MFA. Milestone 1.
+- `identity`: users, sessions, roles, MFA. Milestone 1 (step 2, ADR-002). `auth-config.ts` (Better Auth setup), `auth.ts` (server instance), `schema.ts` (tables), `policy.ts` (`getActor`, `can`, `requireActor`, `requireStaff`), `roles-service.ts` and `cli/role-admin.ts` (staff roles), `rate-limit.ts` (per-email limits), `ui/` (auth forms).
 - `profiles`: public and professional profiles. Milestone 1.
 - `verification`: submissions, review queue, decisions, document access log. Milestone 1.
 - `organizations`: pharmacies and chains, membership. Milestone 1.

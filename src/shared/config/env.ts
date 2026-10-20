@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+// "true"/"false" strings from the environment. z.coerce.boolean() would turn
+// "false" into true, so parse explicitly.
+const booleanFlag = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   S3_ENDPOINT: z.url(),
@@ -13,7 +19,16 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+  // Public origin of the app. Better Auth uses it as its base URL (plus
+  // /api/auth) and as the only trusted origin; email links are built from it.
   APP_URL: z.url(),
+  // Signs session cookies and verification tokens, encrypts TOTP secrets and
+  // keys the email hashes used for rate limiting. At least 32 characters.
+  BETTER_AUTH_SECRET: z.string().min(32),
+  // RFC 5322 sender, e.g. `"منصة الصيادلة" <no-reply@example.com>`.
+  EMAIL_FROM: z.string().min(3),
+  // Have I Been Pwned range check on sign-up and reset. On unless set to "false".
+  AUTH_BREACHED_PASSWORD_CHECK: booleanFlag.default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;

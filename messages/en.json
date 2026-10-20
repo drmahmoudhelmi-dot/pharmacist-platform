@@ -2,10 +2,180 @@
   "Home": {
     "productName": "Pharmacist Platform",
     "tagline": "An Egyptian platform for pharmacists: jobs, professional verification and opportunities in one place.",
-    "switchLanguage": "العربية"
+    "switchLanguage": "العربية",
+    "signIn": "Sign in",
+    "signUp": "Create account"
   },
   "Meta": {
     "title": "Pharmacist Platform",
     "description": "An Arabic-first platform for pharmacists in Egypt."
+  },
+  "Email": {
+    "productName": "Pharmacist Platform",
+    "footer": "This is an automated message from Pharmacist Platform. Please do not reply.",
+    "verification": {
+      "subject": "Confirm your email - Pharmacist Platform",
+      "heading": "Confirm your email",
+      "body": "Thanks for signing up. Open the link below to confirm your email address. The link is valid for 24 hours.",
+      "action": "Confirm email",
+      "ignore": "If you did not create an account on Pharmacist Platform, ignore this message."
+    },
+    "passwordReset": {
+      "subject": "Reset your password - Pharmacist Platform",
+      "heading": "Reset your password",
+      "body": "You asked to reset your password. Open the link below to choose a new one. The link is valid for one hour, works once, and signs you out on every device.",
+      "action": "Choose a new password",
+      "ignore": "If you did not ask for this, ignore this message; your current password stays the same."
+    },
+    "accountExists": {
+      "subject": "Sign-up attempt with your email - Pharmacist Platform",
+      "heading": "You already have an account",
+      "body": "Someone tried to create a new account with this email address, but you already have one. If it was you, sign in, or reset your password if you forgot it.",
+      "action": "Sign in",
+      "ignore": "If it was not you, ignore this message; nothing changed in your account."
+    }
+  },
+  "Common": {
+    "home": "Home",
+    "loading": "Loading…",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "passwordHint": "10 to 128 characters. A long, memorable phrase works best.",
+    "showPassword": "Show password",
+    "required": "This field is required.",
+    "invalidEmail": "Enter a valid email address, like name@example.com.",
+    "passwordLength": "Password must be 10 to 128 characters."
+  },
+  "AuthErrors": {
+    "invalidCredentials": "The email or password is incorrect.",
+    "emailNotVerified": "Your email is not confirmed yet. We sent you a new confirmation link; open your inbox, then try again.",
+    "invalidEmail": "Enter a valid email address.",
+    "passwordTooShort": "The password is too short; use at least 10 characters.",
+    "passwordTooLong": "The password is too long; use at most 128 characters.",
+    "passwordCompromised": "This password appears in known data breaches. Choose a different one.",
+    "invalidToken": "This link is invalid, has expired or was already used.",
+    "invalidCode": "The code is incorrect. Check the current code in your authenticator app.",
+    "invalidBackupCode": "The backup code is incorrect or was already used.",
+    "twoFactorExpired": "The verification step timed out. Sign in again.",
+    "twoFactorTooManyAttempts": "Too many incorrect attempts. Sign in again to get a new attempt.",
+    "accountLocked": "Two-step verification is paused after too many attempts. Try again in 15 minutes.",
+    "wrongPassword": "The password is incorrect.",
+    "sessionNotFresh": "To protect your account, sign in again and retry.",
+    "totpAlreadyEnabled": "Two-step verification is already on.",
+    "unauthenticated": "Your session has ended. Sign in again.",
+    "rateLimited": "Too many attempts in a short time. Wait a little, then try again.",
+    "network": "Could not reach the server. Check your connection and try again.",
+    "generic": "Something went wrong. Please try again shortly."
+  },
+  "SignUp": {
+    "title": "Create an account",
+    "intro": "Sign up with your email. We will send you a link to confirm it.",
+    "submit": "Create account",
+    "submitting": "Creating account…",
+    "haveAccount": "Already have an account?",
+    "signInLink": "Sign in"
+  },
+  "CheckEmail": {
+    "title": "Check your email",
+    "body": "If this email can be registered, a message will arrive within minutes. Open the link in it to confirm your email; it is valid for 24 hours. Check your spam folder too.",
+    "resendTitle": "Did not get it?",
+    "resendSubmit": "Resend confirmation link",
+    "resending": "Sending…",
+    "resent": "If there is an unconfirmed account with this email, we sent a new link.",
+    "signInLink": "Go to sign in"
+  },
+  "VerifyEmail": {
+    "title": "Confirm email",
+    "success": "Your email is confirmed. You can sign in now.",
+    "invalid": "This confirmation link is invalid or has expired.",
+    "missing": "The link is incomplete. Open the full link from the email.",
+    "signInLink": "Sign in",
+    "resendLink": "Request a new link"
+  },
+  "SignIn": {
+    "title": "Sign in",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "forgotLink": "Forgot your password?",
+    "noAccount": "No account yet?",
+    "signUpLink": "Create one",
+    "passwordReset": "Your password was changed and you were signed out on every device. Sign in with the new password.",
+    "signedOut": "You are signed out.",
+    "totpTitle": "Two-step verification",
+    "totpIntro": "Enter the 6-digit code from your authenticator app.",
+    "codeLabel": "Verification code",
+    "backupCodeLabel": "Backup code",
+    "useBackupCode": "Use a backup code instead",
+    "useTotp": "Use an authenticator code",
+    "verify": "Verify",
+    "verifying": "Verifying…",
+    "success": "Signed in. Opening your account…"
+  },
+  "ForgotPassword": {
+    "title": "Forgot password",
+    "intro": "Enter your email and we will send you a link to choose a new password.",
+    "submit": "Send link",
+    "submitting": "Sending…",
+    "sent": "If there is an account with this email, a message will arrive within minutes. The link is valid for one hour.",
+    "signInLink": "Back to sign in"
+  },
+  "ResetPassword": {
+    "title": "Choose a new password",
+    "intro": "After saving, you will be signed out on every device.",
+    "newPasswordLabel": "New password",
+    "submit": "Save password",
+    "submitting": "Saving…",
+    "missing": "The link is incomplete. Open the full link from the email.",
+    "requestNew": "Request a new link"
+  },
+  "Account": {
+    "title": "My account",
+    "emailHeading": "Email",
+    "verified": "Confirmed",
+    "notVerified": "Not confirmed",
+    "notices": {
+      "staff_denied": "You do not have access to the staff area.",
+      "staff_mfa_required": "The staff area requires two-step verification: turn it on, then sign in with it.",
+      "totp_enabled": "Two-step verification is on.",
+      "totp_disabled": "Two-step verification is off."
+    },
+    "totpHeading": "Two-step verification (TOTP)",
+    "totpOn": "On",
+    "totpOff": "Off",
+    "totpExplain": "Asks for a code from an authenticator app (such as Google Authenticator or Microsoft Authenticator) at every sign-in. Required for staff.",
+    "enableStart": "Turn on two-step verification",
+    "confirmPasswordLabel": "Confirm your password to continue",
+    "continue": "Continue",
+    "working": "Working…",
+    "cancel": "Cancel",
+    "setupStep1": "1. Add the account to your authenticator app: open the link on your phone, or enter the key manually.",
+    "openInApp": "Open in authenticator app",
+    "secretLabel": "Key (manual entry)",
+    "uriLabel": "Setup link",
+    "setupStep2": "2. Store the backup codes somewhere safe. Each works once and they will not be shown again.",
+    "backupCodesLabel": "Backup codes",
+    "setupStep3": "3. Enter the current code from the app to finish.",
+    "confirmEnable": "Finish setup",
+    "disableStart": "Turn off two-step verification",
+    "confirmDisable": "Turn off two-step verification",
+    "sessionsHeading": "Sessions",
+    "signOut": "Sign out",
+    "signOutEverywhere": "Sign out on every device",
+    "signOutEverywhereConfirm": "You will be signed out on this device and all others. Continue?",
+    "confirm": "Yes, continue",
+    "staffLink": "Staff area",
+    "codeLabel": "Verification code"
+  },
+  "Staff": {
+    "title": "Staff area",
+    "body": "Staff tools arrive with the admin step. Your access is protected by two-step verification.",
+    "rolesLabel": "Your roles"
+  },
+  "Roles": {
+    "support": "Support",
+    "moderator": "Moderation",
+    "verification_reviewer": "Verification review",
+    "billing": "Billing",
+    "super_admin": "Super admin"
   }
 }

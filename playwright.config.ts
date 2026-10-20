@@ -7,6 +7,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Clears local per-IP rate-limit rows; every E2E request comes from 127.0.0.1.
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

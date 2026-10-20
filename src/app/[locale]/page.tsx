@@ -31,6 +31,20 @@ export default function HomePage({ params }: Props) {
           {t("productName")}
         </h1>
         <p className="text-lg leading-relaxed text-muted">{t("tagline")}</p>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/sign-up"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-white hover:bg-primary-strong"
+          >
+            {t("signUp")}
+          </Link>
+          <Link
+            href="/sign-in"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-5 font-semibold text-primary hover:bg-primary hover:text-white"
+          >
+            {t("signIn")}
+          </Link>
+        </div>
       </section>
     </main>
   );

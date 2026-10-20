@@ -12,6 +12,8 @@ const valid = {
   SMTP_HOST: "localhost",
   SMTP_PORT: "1025",
   APP_URL: "http://localhost:3000",
+  BETTER_AUTH_SECRET: "test-only-secret-0123456789abcdef0123456789",
+  EMAIL_FROM: "no-reply@example.test",
 };
 
 describe("parseEnv", () => {
@@ -34,5 +36,37 @@ describe("parseEnv", () => {
       expect(message).not.toContain("SECRET-PASS");
       expect(message).not.toContain("not-a-number");
     }
+  });
+
+  it("rejects an auth secret shorter than 32 characters without echoing it", () => {
+    const short = "too-short-SECRET";
+    expect(() =>
+      parseEnv({ ...valid, BETTER_AUTH_SECRET: short }),
+    ).toThrowError(/BETTER_AUTH_SECRET/);
+    try {
+      parseEnv({ ...valid, BETTER_AUTH_SECRET: short });
+    } catch (error) {
+      expect(String(error)).not.toContain(short);
+    }
+  });
+
+  it("requires EMAIL_FROM", () => {
+    const { EMAIL_FROM: _omitted, ...rest } = valid;
+    void _omitted;
+    expect(() => parseEnv(rest)).toThrowError(/EMAIL_FROM/);
+  });
+
+  it("turns the breached-password check on by default", () => {
+    expect(parseEnv(valid).AUTH_BREACHED_PASSWORD_CHECK).toBe(true);
+  });
+
+  it('parses "false" as false and rejects other values', () => {
+    expect(
+      parseEnv({ ...valid, AUTH_BREACHED_PASSWORD_CHECK: "false" })
+        .AUTH_BREACHED_PASSWORD_CHECK,
+    ).toBe(false);
+    expect(() =>
+      parseEnv({ ...valid, AUTH_BREACHED_PASSWORD_CHECK: "no" }),
+    ).toThrowError(/AUTH_BREACHED_PASSWORD_CHECK/);
   });
 });

@@ -61,7 +61,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   e2e:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -73,6 +72,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      # Identity journeys need Postgres and Mailpit (verification emails).
+      - run: cp .env.example .env
+      # Retry once: MinIO's health check can pass during its own setup restart.
+      - run: docker compose up -d --wait || docker compose up -d --wait
+      - run: pnpm db:migrate
       - run: pnpm build
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
