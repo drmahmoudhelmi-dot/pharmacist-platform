@@ -9,3 +9,9 @@ export {
   userRole,
   verification,
 } from "@/modules/identity/schema";
+export {
+  experience,
+  governorate,
+  professionalDetails,
+  profile,
+} from "@/modules/profiles/schema";

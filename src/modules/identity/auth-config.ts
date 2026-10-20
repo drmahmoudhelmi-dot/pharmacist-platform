@@ -188,7 +188,7 @@ export function createAuth(deps: AuthDeps) {
     databaseHooks: {
       user: {
         create: {
-          // Profiles arrive in step 3; never store client-supplied name/image.
+          // Names live in profiles (ADR-003); never store client-supplied name/image.
           async before(user) {
             return { data: { ...user, name: "", image: null } };
           },

@@ -1,17 +1,23 @@
-import { useLocale, useTranslations } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
-import { use } from "react";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getActor } from "@/modules/identity/policy";
 import { Link } from "@/shared/i18n/navigation";
 import { isLocale } from "@/shared/i18n/routing";
 
 type Props = { params: Promise<{ locale: string }> };
 
-export default function HomePage({ params }: Props) {
-  const { locale: routeLocale } = use(params);
-  if (isLocale(routeLocale)) setRequestLocale(routeLocale);
+const primaryLink =
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-white hover:bg-primary-strong";
+const secondaryLink =
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-5 font-semibold text-primary hover:bg-primary hover:text-white";
 
-  const t = useTranslations("Home");
-  const locale = useLocale();
+export default async function HomePage({ params }: Props) {
+  const { locale: routeLocale } = await params;
+  const locale = isLocale(routeLocale) ? routeLocale : "ar";
+  setRequestLocale(locale);
+
+  const t = await getTranslations("Home");
+  // Only decides which links to show; every page checks access itself.
+  const signedIn = (await getActor()) !== null;
   const otherLocale = locale === "ar" ? "en" : "ar";
 
   return (
@@ -32,18 +38,25 @@ export default function HomePage({ params }: Props) {
         </h1>
         <p className="text-lg leading-relaxed text-muted">{t("tagline")}</p>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/sign-up"
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-white hover:bg-primary-strong"
-          >
-            {t("signUp")}
-          </Link>
-          <Link
-            href="/sign-in"
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary px-5 font-semibold text-primary hover:bg-primary hover:text-white"
-          >
-            {t("signIn")}
-          </Link>
+          {signedIn ? (
+            <>
+              <Link href="/profile" className={primaryLink}>
+                {t("myProfile")}
+              </Link>
+              <Link href="/account" className={secondaryLink}>
+                {t("myAccount")}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/sign-up" className={primaryLink}>
+                {t("signUp")}
+              </Link>
+              <Link href="/sign-in" className={secondaryLink}>
+                {t("signIn")}
+              </Link>
+            </>
+          )}
         </div>
       </section>
     </main>

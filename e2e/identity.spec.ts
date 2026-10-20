@@ -1,62 +1,23 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { totpFromSecret } from "../tests/integration/helpers/totp";
-import { latestLinkTo } from "./mailpit";
+import {
+  expectNoHorizontalScroll,
+  PASSWORD,
+  signIn,
+  signUpAndVerify,
+  uniqueEmail,
+  watchCsp,
+} from "./helpers";
 
 const exec = promisify(execFile);
-
-const PASSWORD = "correct horse battery staple";
 
 // Every request comes from 127.0.0.1 and the real per-IP limits apply
 // (sign-up 3 per hour, sign-in 5 per 15 min; global-setup clears them before a
 // run). This file stays within them: 3 sign-ups, 4 sign-ins. Serial so the
 // order, and therefore the counts, are stable.
 test.describe.configure({ mode: "serial" });
-
-function uniqueEmail(label: string) {
-  return `e2e-${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
-}
-
-/** Fails the test on any CSP violation reported by the browser. */
-function watchCsp(page: Page) {
-  const violations: string[] = [];
-  page.on("console", (message) => {
-    if (/Content Security Policy/i.test(message.text()))
-      violations.push(message.text());
-  });
-  return violations;
-}
-
-async function expectNoHorizontalScroll(page: Page) {
-  const overflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(0);
-}
-
-async function signUpAndVerify(page: Page, email: string) {
-  await page.goto("/sign-up");
-  await page.getByLabel("البريد الإلكتروني").fill(email);
-  await page.getByLabel("كلمة المرور").fill(PASSWORD);
-  await page.getByRole("button", { name: "إنشاء الحساب" }).click();
-  await expect(page).toHaveURL(/\/check-email$/);
-  const link = await latestLinkTo(page.request, email, "تأكيد بريدك");
-  expect(new URL(link).pathname).toBe("/verify-email");
-  await page.goto(link);
-  await expect(page.getByRole("status")).toContainText(
-    "تم تأكيد بريدك الإلكتروني",
-  );
-}
-
-async function signIn(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("البريد الإلكتروني").fill(email);
-  await page.getByLabel("كلمة المرور").fill(PASSWORD);
-  await page.getByRole("button", { name: "تسجيل الدخول" }).click();
-}
 
 test("register, verify by email, sign in, see the account, sign out (Arabic RTL, 360px)", async ({
   page,
