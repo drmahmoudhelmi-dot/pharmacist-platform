@@ -2,9 +2,16 @@ import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+import { installJobSchema } from "../jobs/boss";
+import { createLogger } from "../logging/logger";
 
 export const migrationsFolder = path.resolve(process.cwd(), "db/migrations");
 
+/**
+ * Applies the Drizzle migrations (schema `public`), then installs or upgrades
+ * pg-boss's own schema (`pgboss`) and the job queues from the registry
+ * (src/shared/jobs/registry.ts). Both steps are idempotent.
+ */
 export async function runMigrations(connectionString: string): Promise<void> {
   const pool = new Pool({ connectionString, max: 1 });
   try {
@@ -12,6 +19,10 @@ export async function runMigrations(connectionString: string): Promise<void> {
   } finally {
     await pool.end();
   }
+  await installJobSchema(
+    connectionString,
+    createLogger({ base: { tool: "migrate" } }),
+  );
 }
 
 // Run directly: `pnpm db:migrate` (tsx loads this file as the entry point).

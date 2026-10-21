@@ -69,6 +69,24 @@ services:
       timeout: 3s
       retries: 10
 
+  # Malware scanner for the upload worker (ADR-004). Uses about 1-1.5 GB of
+  # memory once its signature database is loaded (about 20-60 s after start).
+  # The image ships a signature snapshot from its build date; signature updates
+  # (freshclam) are off locally so start-up needs no network. Production runs
+  # its own clamd with freshclam on.
+  clamav:
+    image: clamav/clamav:1.5.4
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    ports:
+      - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 180s
+
 volumes:
   postgres-data:
   minio-data:

@@ -31,14 +31,33 @@ const envSchema = z.object({
   AUTH_BREACHED_PASSWORD_CHECK: booleanFlag.default(true),
 });
 
+// The background worker (`pnpm worker`) also needs the clamd malware scanner
+// (ADR-004). The web app never talks to clamd, so it does not require these.
+const workerEnvSchema = envSchema.extend({
+  CLAMAV_HOST: z.string().min(1),
+  CLAMAV_PORT: z.coerce.number().int().min(1).max(65535),
+});
+
 export type Env = z.infer<typeof envSchema>;
+export type WorkerEnv = z.infer<typeof workerEnvSchema>;
+
+type Source = Record<string, string | undefined>;
 
 /**
  * Validates a raw environment. Error messages list only the offending keys,
  * never their values, so secrets cannot leak into logs.
  */
-export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = envSchema.safeParse(source);
+export function parseEnv(source: Source): Env {
+  return parseWith(envSchema, source);
+}
+
+/** Same as `parseEnv`, plus the worker-only variables. */
+export function parseWorkerEnv(source: Source): WorkerEnv {
+  return parseWith(workerEnvSchema, source);
+}
+
+function parseWith<S extends z.ZodType>(schema: S, source: Source): z.infer<S> {
+  const result = schema.safeParse(source);
   if (!result.success) {
     const keys = [
       ...new Set(result.error.issues.map((issue) => String(issue.path[0]))),
