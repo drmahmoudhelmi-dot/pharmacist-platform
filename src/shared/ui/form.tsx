@@ -15,8 +15,12 @@ type TextFieldProps = {
   error?: string | null;
   required?: boolean;
   maxLength?: number;
-  /** Emails, passwords and codes are Latin and read left to right. */
-  dir?: "ltr" | "auto";
+  /**
+   * Emails, passwords and codes are Latin and read left to right; a field that
+   * only takes Arabic (with `lang="ar"`) reads right to left in either locale.
+   */
+  dir?: "ltr" | "rtl" | "auto";
+  lang?: string;
   defaultValue?: string;
 };
 
@@ -69,6 +73,7 @@ export function TextField({
   required = true,
   maxLength,
   dir = "ltr",
+  lang,
   defaultValue,
 }: TextFieldProps) {
   const { id, hintId, errorId, describedBy } = useFieldIds(hint, error);
@@ -86,6 +91,7 @@ export function TextField({
         required={required}
         maxLength={maxLength}
         dir={dir}
+        lang={lang}
         defaultValue={defaultValue}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}

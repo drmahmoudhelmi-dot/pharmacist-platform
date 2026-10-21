@@ -16,6 +16,8 @@ const U3 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 const pharmacist = {
   credentialType: "pharmacist",
+  // Synthetic, with harakat and tatweel the parser removes.
+  legalNameAr: "  مُحَمَّد  أحمـد علي   حسن ",
   nationalId: "٢٩٠٠٣١٥٠١١٢٣٤٥",
   syndicateNumber: "١٢٣٤٥",
   cardExpiresOn: "",
@@ -31,6 +33,7 @@ describe("parseSubmission", () => {
       ok: true,
       data: {
         credentialType: "pharmacist",
+        legalNameAr: "محمد أحمد علي حسن",
         nationalId: {
           value: "29003150112345",
           birthDate: "1990-03-15",
@@ -85,6 +88,7 @@ describe("parseSubmission", () => {
     expect(result).toEqual({
       ok: false,
       fieldErrors: {
+        legalNameAr: "required",
         nationalId: "invalidCentury",
         syndicateNumber: "invalidNumber",
         cardExpiresOn: "inPast",
@@ -145,6 +149,21 @@ describe("parseSubmission", () => {
     expect(
       parseSubmission({ ...pharmacist, cardExpiresOn: "٢٠٢٦-١٠-٢١" }, NOW),
     ).toMatchObject({ ok: true, data: { cardExpiresOn: "2026-10-21" } });
+  });
+
+  it("validates the legal name with the other fields (details in legal-name.test.ts)", () => {
+    expect(
+      parseSubmission({ ...pharmacist, legalNameAr: "Mohamed Ahmed Ali" }, NOW),
+    ).toEqual({ ok: false, fieldErrors: { legalNameAr: "nameNotArabic" } });
+    expect(
+      parseSubmission({ ...pharmacist, legalNameAr: "محمد أحمد" }, NOW),
+    ).toEqual({ ok: false, fieldErrors: { legalNameAr: "nameTooFewWords" } });
+    const { legalNameAr: _omit, ...withoutName } = pharmacist;
+    void _omit;
+    expect(parseSubmission(withoutName, NOW)).toEqual({
+      ok: false,
+      fieldErrors: { legalNameAr: "required" },
+    });
   });
 });
 

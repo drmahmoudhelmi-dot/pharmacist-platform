@@ -159,6 +159,9 @@ async function reviewer(label: string, withMfa = true) {
 
 // --- data ---------------------------------------------------------------------
 
+/** A synthetic four-part legal name, already in normalized form. */
+const LEGAL_NAME = "سامي فريد عبد الحميد";
+
 let idCounter = 0;
 /** A fresh synthetic national ID: born 15 March 1990 in Cairo, unique serial. */
 function nationalId(): string {
@@ -198,6 +201,7 @@ async function pharmacistForm(
 ) {
   return {
     credentialType: "pharmacist",
+    legalNameAr: LEGAL_NAME,
     nationalId: nationalId(),
     syndicateNumber: "12345",
     consent: "on",
@@ -286,6 +290,7 @@ describe("submitting", () => {
       userId: actor.userId,
       credentialType: "pharmacist",
       status: "pending",
+      legalNameAr: LEGAL_NAME,
       syndicateNumber: "12345",
       university: null,
       cardExpiresOn: expiry,
@@ -331,6 +336,7 @@ describe("submitting", () => {
       actor,
       {
         credentialType: "student",
+        legalNameAr: "نادية\u064E  سمير\u0640 حلمي",
         nationalId: arabic,
         university: "جامعة عين شمس",
         consent: "on",
@@ -546,14 +552,16 @@ describe("national ID uniqueness", () => {
       h.pool.query(
         `insert into verification_submission
            (user_id, credential_type, syndicate_number, national_id_ciphertext,
-            national_id_hash, national_id_masked, key_id, consent_version)
-         values ($1, 'pharmacist', '1', $2, $3, $4, $5, 'x')`,
+            national_id_hash, national_id_masked, key_id, consent_version,
+            legal_name_ar)
+         values ($1, 'pharmacist', '1', $2, $3, $4, $5, 'x', $6)`,
         [
           second.userId,
           row!.nationalIdCiphertext,
           row!.nationalIdHash,
           row!.nationalIdMasked,
           row!.keyId,
+          LEGAL_NAME,
         ],
       ),
     ).rejects.toMatchObject({
@@ -623,6 +631,7 @@ describe("national ID secrecy", () => {
       "decision",
       "documents",
       "expiredAt",
+      "legalNameAr",
       "nationalIdMasked",
       "status",
       "submittedAt",
@@ -650,6 +659,183 @@ describe("national ID secrecy", () => {
   });
 });
 
+// --- legal name (ADR-004, 4c) ----------------------------------------------------
+
+describe("legal name in Arabic", () => {
+  it("is required, validated and stored normalized", async () => {
+    const { actor } = await member("name-rules");
+    const form = await pharmacistForm(actor);
+    const { legalNameAr: _omit, ...withoutName } = form;
+    void _omit;
+    expect(await submitVerification(deps, actor, withoutName)).toEqual({
+      ok: false,
+      error: "validation",
+      fieldErrors: { legalNameAr: "required" },
+    });
+    for (const [legalNameAr, code] of [
+      ["Samy Farid Abdelhamid", "nameNotArabic"],
+      ["سامي فريد 3", "nameNotArabic"],
+      ["سامي فريد", "nameTooFewWords"],
+      ["سامي فريد -", "nameFormat"],
+    ] as const)
+      expect(
+        await submitVerification(deps, actor, { ...form, legalNameAr }),
+      ).toEqual({
+        ok: false,
+        error: "validation",
+        fieldErrors: { legalNameAr: code },
+      });
+    // Nothing was stored by any of these.
+    expect(
+      await h.db
+        .select()
+        .from(verificationSubmission)
+        .where(eq(verificationSubmission.userId, actor.userId)),
+    ).toHaveLength(0);
+
+    // Harakat, tatweel and extra spaces are removed before storing.
+    const result = await submitVerification(deps, actor, {
+      ...form,
+      legalNameAr: "  س\u064Eام\u0650ي  فر\u0640يد عبد\u064F   الحميد ",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect((await rowOf(result.submission.id))?.legalNameAr).toBe(LEGAL_NAME);
+  });
+
+  it("is enforced by the database: required, normalized shape, length", async () => {
+    const { actor } = await member("name-db");
+    const { id } = await submitted(actor);
+    const row = await rowOf(id);
+    // Reuse a valid encrypted ID; the submission is rejected first so the
+    // national-ID uniqueness index does not interfere.
+    const { actor: rev } = await reviewer("name-db-rev");
+    await decide(deps, rev, id, {
+      decision: "rejected",
+      reasonCode: "other",
+    });
+    const insert = (legalName: string | null) =>
+      h.pool.query(
+        `insert into verification_submission
+           (user_id, credential_type, syndicate_number, national_id_ciphertext,
+            national_id_hash, national_id_masked, key_id, consent_version,
+            legal_name_ar, status, decided_at)
+         values ($1, 'pharmacist', '1', $2, $3, $4, $5, 'x', $6, 'rejected', now())`,
+        [
+          actor.userId,
+          row!.nationalIdCiphertext,
+          row!.nationalIdHash,
+          row!.nationalIdMasked,
+          row!.keyId,
+          legalName,
+        ],
+      );
+    await expect(insert(null)).rejects.toMatchObject({ code: "23502" });
+    for (const bad of [
+      "Samy Farid Ali",
+      "سامي  فريد علي",
+      " سامي فريد علي",
+      "سامي فر\u0640يد علي",
+      "س\u064Eامي فريد علي",
+      "سامي فريد",
+      "سامي فريد علي 1",
+    ])
+      await expect(insert(bad)).rejects.toMatchObject({
+        constraint: "verification_submission_legal_name_ar_shape_check",
+      });
+    await expect(
+      insert(Array.from({ length: 13 }, () => "عبدالرحمن").join(" ")),
+    ).rejects.toMatchObject({
+      constraint: "verification_submission_legal_name_ar_length_check",
+    });
+    // The normalized form passes (hamza and alef forms, taa marbuta, hyphen).
+    await expect(insert("أسامة إبراهيم آل-سيد مؤمنة")).resolves.toBeDefined();
+  });
+
+  it("cannot change after insert, not even by a direct statement", async () => {
+    const { actor } = await member("name-immutable");
+    const { id } = await submitted(actor);
+    await expect(
+      h.pool.query(
+        "update verification_submission set legal_name_ar = 'اسم آخر تماما' where id = $1",
+        [id],
+      ),
+    ).rejects.toThrow(/immutable/);
+    // A decision (the allowed update) leaves it as it was.
+    const { actor: rev } = await reviewer("name-immutable-rev");
+    await decide(deps, rev, id, {
+      decision: "verified",
+      reasonCode: "documents_match",
+    });
+    expect((await rowOf(id))?.legalNameAr).toBe(LEGAL_NAME);
+  });
+
+  it("reaches reviewers and the owner's export, nobody else: no status, profile, email or log", async () => {
+    const name = "مريم أنور عبد الغفار";
+    const { actor, email } = await member("name-reach");
+    const { actor: other } = await member("name-reach-other");
+    const { actor: rev } = await reviewer("name-reach-rev");
+    const { actor: noMfa } = await reviewer("name-reach-nomfa", false);
+    await upsertOwnProfile(h.db, actor, {
+      displayName: "Name Reach",
+      careerStage: "pharmacist",
+      yearsExperience: "2",
+      visibility: "members",
+    });
+    const [profileRow] = await h.pool
+      .query<{ id: string }>("select id from profile where user_id = $1", [
+        actor.userId,
+      ])
+      .then((r) => r.rows);
+    const { id } = await submitted(actor, { legalNameAr: name });
+
+    // Reviewers: queue and detail.
+    const queue = await listQueue(h.db, rev, 1);
+    expect(queue!.items.find((i) => i.id === id)?.legalNameAr).toBe(name);
+    expect((await getSubmissionForReview(h.db, rev, id))?.legalNameAr).toBe(
+      name,
+    );
+
+    // Not a reviewer (another member, a reviewer without MFA, the owner).
+    expect(await listQueue(h.db, other, 1)).toBeNull();
+    expect(await listQueue(h.db, noMfa, 1)).toBeNull();
+    expect(await listQueue(h.db, actor, 1)).toBeNull();
+    expect(await getSubmissionForReview(h.db, other, id)).toBeNull();
+    expect(await getSubmissionForReview(h.db, noMfa, id)).toBeNull();
+    expect(await getSubmissionForReview(h.db, actor, id)).toBeNull();
+
+    // The owner's export has it, in the verification part only.
+    const exported = await exportOwnData(h.db, actor);
+    expect(exported?.verification).toEqual([
+      expect.objectContaining({ legalNameAr: name, status: "pending" }),
+    ]);
+    const { verification: _v, ...rest } = exported!;
+    void _v;
+    expect(JSON.stringify(rest)).not.toContain(name);
+
+    // Status, the profile seen by another member, emails and logs never.
+    expect(
+      JSON.stringify(await getMyVerificationStatus(h.db, actor)),
+    ).not.toContain(name);
+    expect(
+      JSON.stringify(await getProfileForViewer(h.db, other, profileRow!.id)),
+    ).not.toContain(name);
+    await decide(deps, rev, id, {
+      decision: "verified",
+      reasonCode: "documents_match",
+    });
+    await drainNotices();
+    const mails = outbox.filter((m) => m.to === email);
+    expect(mails.length).toBeGreaterThanOrEqual(2);
+    for (const m of mails) {
+      expect(m.text).not.toContain(name);
+      expect(m.html).not.toContain(name);
+      expect(m.subject).not.toContain(name);
+    }
+    expect(logLines.join("\n")).not.toContain(name);
+  });
+});
+
 // --- reviewing ----------------------------------------------------------------------
 
 describe("review access", () => {
@@ -668,6 +854,7 @@ describe("review access", () => {
     expect(Object.keys(item).sort()).toEqual([
       "credentialType",
       "id",
+      "legalNameAr",
       "nationalIdMasked",
       "submittedAt",
     ]);
@@ -699,6 +886,7 @@ describe("review access", () => {
       id: first.id,
       status: "pending",
       credentialType: "pharmacist",
+      legalNameAr: LEGAL_NAME,
       syndicateNumber: "12345",
       decision: null,
     });

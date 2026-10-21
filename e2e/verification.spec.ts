@@ -169,8 +169,22 @@ test("a pharmacist is verified by a reviewer and gets the badge; a student is re
   ).toBeVisible();
   await expect(page.getByText("يجب الموافقة للمتابعة.")).toBeVisible();
 
+  // The legal name: Arabic only, at least three words; harakat are removed.
+  const legalName = page.getByLabel("الاسم كما هو مكتوب في بطاقة الرقم القومي");
+  await expect(legalName).toHaveAttribute("dir", "rtl");
+  await legalName.fill("Sami Farid");
+  await page.getByRole("button", { name: "إرسال طلب التوثيق" }).click();
+  await expect(
+    page.getByText(
+      "اكتب الاسم بالحروف العربية فقط، بدون أرقام أو حروف إنجليزية.",
+    ),
+  ).toBeVisible();
+  await legalName.fill("س\u064Eامي فريد عبد الحميد");
+
   const nationalId = syntheticNationalId();
-  await page.getByLabel("الرقم القومي").fill(toArabicDigits(nationalId));
+  await page
+    .getByLabel("الرقم القومي", { exact: true })
+    .fill(toArabicDigits(nationalId));
   await page.getByLabel("رقم العضوية في النقابة").fill("٤٥٦٧٨");
   await uploadDocument(page, "البطاقة الشخصية (الوجه)", "#1b4332");
   await uploadDocument(page, "البطاقة الشخصية (الظهر)", "#2d6a4f");
@@ -210,6 +224,13 @@ test("a pharmacist is verified by a reviewer and gets the badge; a student is re
   await staff.getByRole("link", { name: "طلبات التوثيق" }).click();
   await openSubmission(staff, nationalId);
   await expectNoHorizontalScroll(staff);
+  // The legal name, normalized, above the claims and beside the photos.
+  await expect(staff.getByTestId("review-legal-name")).toHaveText(
+    "سامي فريد عبد الحميد",
+  );
+  await expect(staff.getByTestId("review-legal-name-compare")).toContainText(
+    "سامي فريد عبد الحميد",
+  );
 
   // The three photos load through the logged, signed-URL route.
   for (const kind of [
@@ -292,6 +313,8 @@ test("a pharmacist is verified by a reviewer and gets the badge; a student is re
   await expect(
     page.getByTestId("profile-view").getByTestId("verified-badge"),
   ).toHaveText("موثّق");
+  // The legal name is for reviewers only, never on the profile.
+  await expect(page.getByText("سامي فريد عبد الحميد")).toHaveCount(0);
   const profileUrl = page.url();
 
   // --- A student is rejected; the reason is shown. --------------------------------
@@ -312,7 +335,10 @@ test("a pharmacist is verified by a reviewer and gets the badge; a student is re
   await student.goto("/verification");
   await student.getByLabel("طالب صيدلة").check();
   const studentId = syntheticNationalId();
-  await student.getByLabel("الرقم القومي").fill(studentId);
+  await student
+    .getByLabel("الاسم كما هو مكتوب في بطاقة الرقم القومي")
+    .fill("ليلى منير  حسن");
+  await student.getByLabel("الرقم القومي", { exact: true }).fill(studentId);
   await student
     .getByRole("textbox", { name: "الجامعة" })
     .fill("جامعة الإسكندرية");

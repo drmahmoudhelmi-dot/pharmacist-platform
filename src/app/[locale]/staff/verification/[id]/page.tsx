@@ -15,8 +15,9 @@ type Props = { params: Promise<{ locale: string; id: string }> };
 export const dynamicParams = true;
 
 /**
- * One submission for review. Masked national ID until the reviewer reveals it
- * (logged). Photos load through /api/verification/documents/<id>, which logs
+ * One submission for review. The legal name in Arabic the user typed from the
+ * national ID card, shown above the claims and kept in view beside the photos
+ * for comparison. Masked national ID until the reviewer reveals it (logged). Photos load through /api/verification/documents/<id>, which logs
  * each view and redirects to a 5-minute signed URL; they are shown only while
  * the submission is pending. Own, missing and malformed ids all answer 404.
  */
@@ -51,6 +52,14 @@ export default async function ReviewSubmissionPage({ params }: Props) {
             {tv(`states.${submission.status}`)}
           </span>
         </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm text-muted">{t("legalNameLabel")}</p>
+          <p className="text-xl font-bold">
+            <bdi dir="rtl" lang="ar" data-testid="review-legal-name">
+              {submission.legalNameAr}
+            </bdi>
+          </p>
+        </div>
         <p>
           {tv("credentialTypeLabel")}:{" "}
           {tv(`credentialTypes.${submission.credentialType}`)}
@@ -100,6 +109,18 @@ export default async function ReviewSubmissionPage({ params }: Props) {
             {t("documentsHeading")}
           </h2>
           <p className="text-sm text-muted">{t("documentsExplain")}</p>
+          {/* The name stays in view while the reviewer scrolls the photos. */}
+          <div
+            className="sticky top-0 z-10 flex flex-col gap-1 rounded-lg border-2 border-primary bg-surface p-3"
+            data-testid="review-legal-name-compare"
+          >
+            <p className="text-sm text-muted">{t("legalNameCompare")}</p>
+            <p className="text-xl font-bold">
+              <bdi dir="rtl" lang="ar">
+                {submission.legalNameAr}
+              </bdi>
+            </p>
+          </div>
           <ul className="flex flex-col gap-4">
             {submission.documents.map((doc) => (
               <li key={doc.id} className="flex flex-col gap-2">

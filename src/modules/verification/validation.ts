@@ -11,6 +11,7 @@ import {
   REQUIRED_DOCUMENTS,
   reasonFits,
 } from "./constants";
+import { type LegalNameError, parseLegalNameAr } from "./legal-name";
 import {
   cairoDate,
   type NationalIdError,
@@ -24,6 +25,7 @@ import {
 
 export type SubmissionField =
   | "credentialType"
+  | "legalNameAr"
   | "nationalId"
   | "syndicateNumber"
   | "university"
@@ -33,6 +35,7 @@ export type SubmissionField =
 
 export type FieldErrorCode =
   | NationalIdError
+  | LegalNameError
   | "required"
   | "invalidChoice"
   | "invalidNumber"
@@ -54,6 +57,8 @@ export type RawForm = Record<string, unknown>;
 
 export type SubmissionInput = {
   credentialType: CredentialType;
+  /** Normalized (see legal-name.ts), exactly what is stored. */
+  legalNameAr: string;
   nationalId: ParsedNationalId;
   syndicateNumber: string | null;
   university: string | null;
@@ -115,6 +120,9 @@ export function parseSubmission(
   if (!isCredentialType(type))
     errors.credentialType = type ? "invalidChoice" : "required";
 
+  const legalName = parseLegalNameAr(raw.legalNameAr);
+  if (!legalName.ok) errors.legalNameAr = legalName.error;
+
   const id = parseNationalId(raw.nationalId, now);
   if (!id.ok) errors.nationalId = id.error;
 
@@ -155,6 +163,7 @@ export function parseSubmission(
 
   if (
     Object.keys(errors).length > 0 ||
+    !legalName.ok ||
     !id.ok ||
     !isCredentialType(type) ||
     !expiry.ok
@@ -164,6 +173,7 @@ export function parseSubmission(
     ok: true,
     data: {
       credentialType: type,
+      legalNameAr: legalName.value,
       nationalId: id.data,
       syndicateNumber,
       university,

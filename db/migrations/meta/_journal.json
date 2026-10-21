@@ -36,6 +36,13 @@
       "when": 1792602805078,
       "tag": "0004_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792605073059,
+      "tag": "0005_legal_name",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ import {
   DECISIONS,
   DOCUMENT_KINDS,
   EMAIL_LOCALES,
+  LEGAL_NAME_AR_PATTERN,
   LIMITS,
   REJECT_REASONS,
   SUBMISSION_STATUSES,
@@ -54,6 +55,10 @@ export const verificationSubmission = pgTable(
     status: text("status", { enum: SUBMISSION_STATUSES })
       .default("pending")
       .notNull(),
+    // The user's legal name in Arabic as written on the national ID card,
+    // normalized (validation.ts). For the reviewer to compare with the card
+    // (ADR-004, 4c); never shown on profiles or in emails. Immutable.
+    legalNameAr: text("legal_name_ar").notNull(),
     // Unverified claims, stored as submitted (normalized).
     syndicateNumber: text("syndicate_number"),
     university: text("university"),
@@ -129,6 +134,20 @@ export const verificationSubmission = pgTable(
       "verification_submission_university_check",
       sql.raw(
         `char_length(university) between ${LIMITS.university.min} and ${LIMITS.university.max}`,
+      ),
+    ),
+    // Normalized length, then shape: Arabic-letter words separated by single
+    // spaces, at least three (the same pattern as the service's validation).
+    check(
+      "verification_submission_legal_name_ar_length_check",
+      sql.raw(
+        `char_length(legal_name_ar) between ${LIMITS.legalNameAr.min} and ${LIMITS.legalNameAr.max}`,
+      ),
+    ),
+    check(
+      "verification_submission_legal_name_ar_shape_check",
+      sql.raw(
+        `legal_name_ar ~ '${LEGAL_NAME_AR_PATTERN.replaceAll("'", "''")}'`,
       ),
     ),
     check(

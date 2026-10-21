@@ -364,6 +364,8 @@
     },
     "nationalIdLabel": "National ID number",
     "nationalIdHint": "The 14 digits on your card. Stored encrypted and only ever shown masked.",
+    "legalNameArLabel": "Your name as written on your national ID card",
+    "legalNameArHint": "In Arabic, in the same order as on the card (at least three names). Only the verification team sees it, to compare with the card; it is not shown on your profile and cannot be changed after you submit.",
     "submittedOn": "Sent on {date}",
     "validUntil": "Valid until {date}",
     "reasonLabel": "Reason",
@@ -427,7 +429,10 @@
     "documentNotFound": "Upload a photo of this document.",
     "documentProcessing": "Wait until the photo check finishes.",
     "documentRejected": "This photo was refused. Upload another one.",
-    "documentInUse": "This photo was already used. Upload a new one."
+    "documentInUse": "This photo was already used. Upload a new one.",
+    "nameNotArabic": "Write the name in Arabic letters only, without digits or Latin letters.",
+    "nameFormat": "The name has punctuation in the wrong place. Write it as on the card.",
+    "nameTooFewWords": "Write at least three names, as on the card."
   },
   "VerificationReasons": {
     "documents_match": "Documents match",
@@ -474,6 +479,8 @@
     "statusLabel": "Status",
     "noExpiry": "Not given",
     "nationalIdLabel": "National ID",
+    "legalNameLabel": "Name as on the ID card (as entered by the user)",
+    "legalNameCompare": "Compare this name with the card photo",
     "revealExplain": "Showing the full number is logged in your name.",
     "revealNationalId": "Show national ID",
     "hideNationalId": "Hide number",

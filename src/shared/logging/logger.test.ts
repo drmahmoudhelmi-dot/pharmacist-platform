@@ -19,11 +19,13 @@ describe("logger redaction", () => {
         token: "tok-123",
         otp: "654321",
         nationalId: "29001010123456",
+        legalNameAr: "اسم قانوني للاختبار",
         email: "test.user@example.test",
         user: {
           password: "nested-pass",
           nationalId: "29001010123456",
           phone: "+201000000000",
+          legalName: "اسم آخر للاختبار",
         },
       },
       "event",
@@ -37,12 +39,16 @@ describe("logger redaction", () => {
       "nested-pass",
       "test.user@example.test",
       "+201000000000",
+      "اسم قانوني للاختبار",
+      "اسم آخر للاختبار",
     ]) {
       expect(out).not.toContain(secret);
     }
     const parsed = JSON.parse(out);
     expect(parsed.password).toBe("[redacted]");
     expect(parsed.user.nationalId).toBe("[redacted]");
+    expect(parsed.legalNameAr).toBe("[redacted]");
+    expect(parsed.user.legalName).toBe("[redacted]");
     expect(parsed.msg).toBe("event");
   });
 
