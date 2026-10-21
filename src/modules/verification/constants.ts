@@ -84,6 +84,12 @@ export const CONSENT_VERSION = "draft-pending-counsel";
 export const LIMITS = {
   syndicateNumber: { min: 1, max: 12 },
   university: { min: 2, max: 120 },
+  /**
+   * Legal name in Arabic, as on the national ID, after normalization (code
+   * points). Egyptian IDs carry a four-part name; three words is the minimum
+   * accepted. `rawMax` bounds the input before normalization.
+   */
+  legalNameAr: { min: 5, max: 120, minWords: 3, rawMax: 400 },
   note: { max: 500 },
   /** Card expiry: no later than this many years ahead. */
   cardExpiryMaxYears: 10,
@@ -91,6 +97,22 @@ export const LIMITS = {
   age: { min: 17, max: 90 },
   queuePageSize: 20,
 } as const;
+
+/**
+ * The stored shape of a legal name (validation.ts normalizes to it): words of
+ * Arabic letters (ء-غ, ف-ي, which include every hamza and alef form, taa
+ * marbuta and alef maqsura, plus alef wasla ٱ), optionally joined inside a word
+ * by a hyphen or an apostrophe, separated by single spaces, at least
+ * `minWords` words. No diacritics, tatweel, digits or Latin letters. Written
+ * with `\u` escapes so the same source works as a JavaScript RegExp (`u` flag)
+ * and as a PostgreSQL regular expression (the database CHECK).
+ */
+const ARABIC_LETTER = "[\\u0621-\\u063A\\u0641-\\u064A\\u0671]";
+const NAME_WORD = `${ARABIC_LETTER}+(?:[-']${ARABIC_LETTER}+)*`;
+export const LEGAL_NAME_AR_PATTERN = `^${NAME_WORD}(?: ${NAME_WORD}){${LIMITS.legalNameAr.minWords - 1},}$`;
+/** One allowed character of a normalized legal name (letters, space, hyphen, apostrophe). */
+export const LEGAL_NAME_AR_CHARACTER =
+  "[\\u0621-\\u063A\\u0641-\\u064A\\u0671 '-]";
 
 /** All dates are computed in Egypt's zone (DST since 2023, never a fixed offset). */
 export const TIME_ZONE = "Africa/Cairo";

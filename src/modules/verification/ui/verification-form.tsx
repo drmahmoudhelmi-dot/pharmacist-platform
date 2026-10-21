@@ -102,6 +102,16 @@ export function VerificationForm() {
         onChange={(value) => setType(value as CredentialType)}
       />
       <TextField
+        name="legalNameAr"
+        label={t("legalNameArLabel")}
+        hint={t("legalNameArHint")}
+        dir="rtl"
+        lang="ar"
+        autoComplete="off"
+        maxLength={LIMITS.legalNameAr.rawMax}
+        error={fieldError("legalNameAr")}
+      />
+      <TextField
         name="nationalId"
         label={t("nationalIdLabel")}
         hint={t("nationalIdHint")}

@@ -231,6 +231,7 @@ export async function submitVerification(
         .values({
           userId: actor.userId,
           credentialType: input.credentialType,
+          legalNameAr: input.legalNameAr,
           syndicateNumber: input.syndicateNumber,
           university: input.university,
           cardExpiresOn: input.cardExpiresOn,
@@ -374,6 +375,8 @@ export async function getVerificationBadge(
 export type VerificationExportItem = {
   credentialType: string;
   status: string;
+  /** The legal name in Arabic the user entered (their own data). */
+  legalNameAr: string;
   nationalIdMasked: string;
   syndicateNumber: string | null;
   university: string | null;
@@ -388,7 +391,7 @@ export type VerificationExportItem = {
 
 /**
  * The verification part of the user's data export: every submission with
- * its status, claims, masked ID, document kinds and decision. Never the
+ * its status, legal name, claims, masked ID, document kinds and decision. Never the
  * ciphertext, hash, key id, photos or the reviewer's identity and internal
  * note (whether the note belongs in an access request is a question for
  * counsel; see data-protection-status.md).
@@ -404,6 +407,7 @@ export async function exportOwnVerification(
       id: verificationSubmission.id,
       credentialType: verificationSubmission.credentialType,
       status: verificationSubmission.status,
+      legalNameAr: verificationSubmission.legalNameAr,
       nationalIdMasked: verificationSubmission.nationalIdMasked,
       syndicateNumber: verificationSubmission.syndicateNumber,
       university: verificationSubmission.university,
@@ -441,6 +445,7 @@ export async function exportOwnVerification(
   return rows.map((r) => ({
     credentialType: r.credentialType,
     status: r.status,
+    legalNameAr: r.legalNameAr,
     nationalIdMasked: r.nationalIdMasked,
     syndicateNumber: r.syndicateNumber,
     university: r.university,
@@ -470,6 +475,8 @@ export async function exportOwnVerification(
 export type QueueItem = {
   id: string;
   credentialType: CredentialType;
+  /** Legal name in Arabic as on the national ID (reviewer-only). */
+  legalNameAr: string;
   nationalIdMasked: string;
   submittedAt: Date;
 };
@@ -477,7 +484,7 @@ export type QueueItem = {
 export type QueuePage = { items: QueueItem[]; page: number; hasMore: boolean };
 
 /**
- * Pending submissions, oldest first, masked ID only. The reviewer's own
+ * Pending submissions, oldest first, masked ID and legal name only. The reviewer's own
  * submission is left out (they may not review it). Offset pages: the queue is
  * a small staff table (database reference, "Queries and pagination").
  */
@@ -494,6 +501,7 @@ export async function listQueue(
     .select({
       id: verificationSubmission.id,
       credentialType: verificationSubmission.credentialType,
+      legalNameAr: verificationSubmission.legalNameAr,
       nationalIdMasked: verificationSubmission.nationalIdMasked,
       submittedAt: verificationSubmission.submittedAt,
     })
@@ -527,6 +535,8 @@ export type ReviewDetails = {
   id: string;
   credentialType: CredentialType;
   status: SubmissionStatus;
+  /** Legal name in Arabic as the user typed it from the national ID card. */
+  legalNameAr: string;
   nationalIdMasked: string;
   syndicateNumber: string | null;
   university: string | null;
@@ -543,7 +553,8 @@ export type ReviewDetails = {
 };
 
 /**
- * One submission for a reviewer, masked ID only (the clear value needs an
+ * One submission for a reviewer, with the legal name to compare with the
+ * card, masked ID only (the clear value needs an
  * explicit, logged `revealNationalId`). Null when missing, malformed, the
  * reviewer's own, or the caller is not a reviewer.
  */
@@ -559,6 +570,7 @@ export async function getSubmissionForReview(
       userId: verificationSubmission.userId,
       credentialType: verificationSubmission.credentialType,
       status: verificationSubmission.status,
+      legalNameAr: verificationSubmission.legalNameAr,
       nationalIdMasked: verificationSubmission.nationalIdMasked,
       syndicateNumber: verificationSubmission.syndicateNumber,
       university: verificationSubmission.university,
@@ -596,6 +608,7 @@ export async function getSubmissionForReview(
     id: row.id,
     credentialType: row.credentialType,
     status: row.status,
+    legalNameAr: row.legalNameAr,
     nationalIdMasked: row.nationalIdMasked,
     syndicateNumber: row.syndicateNumber,
     university: row.university,

@@ -5,6 +5,8 @@ const REDACTED_KEYS = [
   "token",
   "otp",
   "nationalId",
+  "legalName",
+  "legalNameAr",
   "email",
   "phone",
 ];

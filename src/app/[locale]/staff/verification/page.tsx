@@ -11,9 +11,10 @@ type Props = {
   searchParams: Promise<{ page?: string | string[] }>;
 };
 
-// The verification review queue (ADR-004, 4b): pending submissions, oldest
-// first, masked national IDs only. Needs the verification_reviewer role and a
-// session that passed TOTP.
+// The verification review queue (ADR-004, 4b, 4c): pending submissions,
+// oldest first, with masked national IDs and the legal names users typed from
+// their cards. Needs the verification_reviewer role and a session that passed
+// TOTP.
 export default async function VerificationQueuePage({
   params,
   searchParams,
@@ -54,9 +55,15 @@ export default async function VerificationQueuePage({
                 className="flex min-h-11 flex-col gap-1 rounded-lg border border-muted bg-surface p-3 hover:border-primary"
                 data-testid="queue-item"
               >
-                <span className="font-semibold">
-                  {tv(`credentialTypes.${item.credentialType}`)}
-                </span>
+                <bdi
+                  dir="rtl"
+                  lang="ar"
+                  className="font-semibold"
+                  data-testid="queue-item-legal-name"
+                >
+                  {item.legalNameAr}
+                </bdi>
+                <span>{tv(`credentialTypes.${item.credentialType}`)}</span>
                 <bdi dir="ltr" className="font-mono">
                   {item.nationalIdMasked}
                 </bdi>
