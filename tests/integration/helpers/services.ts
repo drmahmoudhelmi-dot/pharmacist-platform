@@ -38,7 +38,16 @@ export async function startObjectStorage(bucket = "pharma-private") {
       MINIO_ROOT_PASSWORD: secretAccessKey,
     })
     .withExposedPorts(9000)
-    .withWaitStrategy(Wait.forHttp("/minio/health/live", 9000))
+    // The Bitnami image first runs MinIO in the background for its setup,
+    // stops it, then starts it for good ("** Starting MinIO **"). The health
+    // check alone can pass during the setup run, and requests then fail with
+    // "socket hang up" a few seconds later.
+    .withWaitStrategy(
+      Wait.forAll([
+        Wait.forLogMessage(/\*\* Starting MinIO \*\*/),
+        Wait.forHttp("/minio/health/live", 9000),
+      ]),
+    )
     .withStartupTimeout(120_000)
     .start();
   const endpoint = `http://${container.getHost()}:${container.getMappedPort(9000)}`;

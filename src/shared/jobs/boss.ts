@@ -46,7 +46,9 @@ export function createWorkerBoss(connectionString: string, logger: Logger) {
       instanceHeartbeatSeconds: 10,
       max: 5,
       supervise: true,
-      schedule: false,
+      // Runs the cron schedules (verification.expire). Several workers may
+      // all have it on: pg-boss lets one instance per interval fire a schedule.
+      schedule: true,
       migrate: false,
     }),
     logger,

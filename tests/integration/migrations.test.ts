@@ -41,6 +41,9 @@ describe("database migrations", () => {
     expect(queues.rows).toEqual([
       { name: "upload.process", dead_letter: "upload.process.dead" },
       { name: "upload.process.dead", dead_letter: null },
+      { name: "verification.expire", dead_letter: null },
+      { name: "verification.notify", dead_letter: "verification.notify.dead" },
+      { name: "verification.notify.dead", dead_letter: null },
     ]);
   });
 
@@ -49,7 +52,7 @@ describe("database migrations", () => {
     const queues = await pool.query(
       "select count(*)::int as n from pgboss.queue",
     );
-    expect(queues.rows[0]?.n).toBe(2);
+    expect(queues.rows[0]?.n).toBe(5);
   });
 
   it("runs queries against PostgreSQL 18", async () => {

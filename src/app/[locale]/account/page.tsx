@@ -77,6 +77,16 @@ export default async function AccountPage({ params, searchParams }: Props) {
           </section>
           <section
             className="flex flex-col gap-2"
+            aria-labelledby="verification-heading"
+          >
+            <h2 id="verification-heading" className="text-lg font-semibold">
+              {t("verificationHeading")}
+            </h2>
+            <p className="text-muted">{t("verificationExplain")}</p>
+            <TextLink href="/verification">{t("verificationLink")}</TextLink>
+          </section>
+          <section
+            className="flex flex-col gap-2"
             aria-labelledby="data-heading"
           >
             <h2 id="data-heading" className="text-lg font-semibold">

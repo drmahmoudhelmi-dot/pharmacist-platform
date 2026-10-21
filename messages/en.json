@@ -171,12 +171,16 @@
     "profileLink": "My profile",
     "dataHeading": "Your data",
     "dataExplain": "Download a copy of your account and profile data as JSON.",
-    "downloadData": "Download my data"
+    "downloadData": "Download my data",
+    "verificationHeading": "Professional verification",
+    "verificationExplain": "Verify that you are a pharmacist or pharmacy student to show a “Verified” badge on your profile.",
+    "verificationLink": "Verify my account"
   },
   "Staff": {
     "title": "Staff area",
     "body": "Staff tools arrive with the admin step. Your access is protected by two-step verification.",
-    "rolesLabel": "Your roles"
+    "rolesLabel": "Your roles",
+    "verificationLink": "Verification requests"
   },
   "Roles": {
     "support": "Support",
@@ -271,7 +275,9 @@
     "cancel": "Cancel",
     "deleteConfirm": "Delete this experience? This cannot be undone.",
     "confirmDelete": "Yes, delete",
-    "accountLink": "My account"
+    "accountLink": "My account",
+    "verificationHeading": "Verification",
+    "verificationLink": "Verification page"
   },
   "ProfileErrors": {
     "required": "This field is required.",
@@ -302,7 +308,8 @@
     "specialtiesHeading": "Areas of work",
     "experienceHeading": "Experience",
     "noExperience": "No experience added.",
-    "present": "Present"
+    "present": "Present",
+    "verifiedBadge": "Verified"
   },
   "NotFound": {
     "title": "Page not found",
@@ -326,6 +333,184 @@
       "infected": "The photo was refused because the security check flagged it.",
       "undecodable": "The photo could not be read. Take a new photo and upload it.",
       "processing_failed": "The photo could not be processed. Upload it again."
+    }
+  },
+  "Verification": {
+    "title": "Professional verification",
+    "intro": "Upload photos of your national ID and your syndicate or college card for the verification team to review. The “Verified” badge appears only after approval.",
+    "stateLabel": "Status",
+    "states": {
+      "unverified": "Not verified",
+      "pending": "Under review",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    },
+    "stateExplain": {
+      "unverified": "You have not sent a verification request yet.",
+      "pending": "We received your request and the verification team will review it. We will email you the result.",
+      "verified": "Your professional status is verified and the badge shows on your profile.",
+      "rejected": "Your request was not approved. Check the reason and send a new request.",
+      "expired": "The card you were verified with has expired. Send a new request with a valid card."
+    },
+    "credentialTypeLabel": "I am a",
+    "credentialTypes": {
+      "pharmacist": "Pharmacist",
+      "student": "Pharmacy student"
+    },
+    "credentialHints": {
+      "pharmacist": "Photo of your pharmacists' syndicate card and your membership number.",
+      "student": "Photo of your college card and your university's name."
+    },
+    "nationalIdLabel": "National ID number",
+    "nationalIdHint": "The 14 digits on your card. Stored encrypted and only ever shown masked.",
+    "submittedOn": "Sent on {date}",
+    "validUntil": "Valid until {date}",
+    "reasonLabel": "Reason",
+    "formHeading": "Verification request",
+    "resubmitHeading": "Send a new request",
+    "privacyNote": "Your photos and national ID are kept in private storage, seen only by the verification team, and every view is logged.",
+    "notAllowed": "Confirm your email address first to request verification.",
+    "accountLink": "Back to my account",
+    "syndicateNumberLabel": "Syndicate membership number",
+    "syndicateNumberHint": "As printed on the card, digits only.",
+    "universityLabel": "University",
+    "cardExpiresOnLabel": "Card expiry date (optional)",
+    "cardExpiresOnHint": "If the card has one. Verification expires with it.",
+    "documentsLegend": "Document photos",
+    "documentsHint": "Photograph each document whole and clearly. JPEG, PNG or WebP up to 8 MB. Location and device data are removed from photos.",
+    "documentKinds": {
+      "national_id_front": "National ID (front)",
+      "national_id_back": "National ID (back)",
+      "syndicate_card": "Pharmacists' syndicate card",
+      "student_card": "College card"
+    },
+    "documentHints": {
+      "national_id_front": "The side with your photo and national ID number.",
+      "national_id_back": "The back of the card.",
+      "syndicate_card": "The side with your name and membership number.",
+      "student_card": "The side with your name and college."
+    },
+    "consentPendingBadge": "Placeholder wording, pending legal counsel's review",
+    "consentText": "[Placeholder] I agree that Pharmacist Platform processes my national ID number and document photos only to verify my professional status, and that the verification team may view them. This text will be replaced with counsel-approved wording before launch.",
+    "consentLabel": "I agree",
+    "submit": "Send verification request",
+    "submitting": "Sending…",
+    "submitted": "Request received. National ID on file: {masked}",
+    "uploadProgress": "Uploading… {percent}%",
+    "uploadReady": "Photo ready.",
+    "upload_network": "The connection dropped during the upload. Try again.",
+    "upload_stillProcessing": "The photo is still being checked. Try later or upload it again."
+  },
+  "VerificationErrors": {
+    "validation": "Check the highlighted fields and try again.",
+    "network": "Could not connect. Check your internet and try again.",
+    "unavailable": "The service is unavailable right now. Try again in a few minutes.",
+    "forbidden": "You cannot do this.",
+    "already_pending": "You already have a verification request under review.",
+    "already_verified": "Your account is already verified.",
+    "national_id_in_use": "This national ID number is already in use.",
+    "required": "This field is required.",
+    "invalidFormat": "A national ID number has 14 digits.",
+    "invalidCentury": "A national ID number starts with 2 or 3.",
+    "invalidBirthDate": "The birth date in the national ID number is not valid.",
+    "ageOutOfRange": "Age must be between 17 and 90.",
+    "invalidGovernorate": "The governorate code in the national ID number is not valid.",
+    "invalidChoice": "Choose from the list.",
+    "invalidNumber": "Use digits only.",
+    "tooShort": "Too short.",
+    "tooLong": "Too long.",
+    "invalidDate": "Not a valid date.",
+    "inPast": "The card has expired. Use a valid card.",
+    "tooFarAhead": "That date is too far ahead. Check it.",
+    "consentRequired": "You must agree to continue.",
+    "documentNotFound": "Upload a photo of this document.",
+    "documentProcessing": "Wait until the photo check finishes.",
+    "documentRejected": "This photo was refused. Upload another one.",
+    "documentInUse": "This photo was already used. Upload a new one."
+  },
+  "VerificationReasons": {
+    "documents_match": "Documents match",
+    "document_unreadable": "A document photo is unclear or unreadable.",
+    "document_missing_or_wrong": "A document is missing or not the one requested.",
+    "details_mismatch": "The details entered do not match the documents.",
+    "credential_not_confirmed": "The membership or enrolment could not be confirmed.",
+    "card_expired": "The card has expired.",
+    "other": "The request did not meet the verification requirements. Contact support for details."
+  },
+  "VerificationEmail": {
+    "reasonLabel": "Reason",
+    "note": "If you did not request verification, contact support.",
+    "received": {
+      "subject": "Verification request received - Pharmacist Platform",
+      "heading": "Your request is under review",
+      "body": "We received your professional verification request and the verification team will review it. We will email you the result.",
+      "action": "Check the status"
+    },
+    "verified": {
+      "subject": "Your account is verified - Pharmacist Platform",
+      "heading": "Verified",
+      "body": "The verification team approved your request. Your profile now shows the “Verified” badge.",
+      "action": "View verification status"
+    },
+    "rejected": {
+      "subject": "Verification request not approved - Pharmacist Platform",
+      "heading": "Your request was not approved",
+      "body": "The verification team reviewed your request and did not approve it. You can send a new request once the reason is fixed.",
+      "action": "Send a new request"
+    }
+  },
+  "StaffVerification": {
+    "queueTitle": "Verification requests",
+    "queueIntro": "Requests under review, oldest first. National IDs are masked; every view of a document or a full number is logged in your name.",
+    "queueEmpty": "No requests are waiting for review.",
+    "submittedAt": "Sent {date}",
+    "pagination": "Request pages",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "staffLink": "Staff area",
+    "detailTitle": "Review a verification request",
+    "claimsHeading": "Request details",
+    "statusLabel": "Status",
+    "noExpiry": "Not given",
+    "nationalIdLabel": "National ID",
+    "revealExplain": "Showing the full number is logged in your name.",
+    "revealNationalId": "Show national ID",
+    "hideNationalId": "Hide number",
+    "documentsHeading": "Documents",
+    "documentsExplain": "Photos load through links valid for 5 minutes, and every view is logged. Reload the page if a photo expired.",
+    "decisionHeading": "Decision",
+    "decisionLabel": "Decision",
+    "decisions": {
+      "verified": "Approve (verify)",
+      "rejected": "Reject"
+    },
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Choose a reason",
+    "noteLabel": "Internal note (optional)",
+    "noteHint": "Staff only, never shown to the user. Up to 500 characters. Do not write the national ID.",
+    "submitDecision": "Record decision",
+    "confirm": {
+      "verified": "The request will be approved and the user notified. This cannot be undone.",
+      "rejected": "The request will be rejected and the user told the reason. This cannot be undone."
+    },
+    "confirmButton": {
+      "verified": "Confirm approval",
+      "rejected": "Confirm rejection"
+    },
+    "decided": {
+      "verified": "The request was approved.",
+      "rejected": "The request was rejected."
+    },
+    "byYou": "by you",
+    "queueLink": "Back to requests",
+    "working": "Working…",
+    "errors": {
+      "not_found": "This request is not available for review.",
+      "forbidden": "You cannot review this request.",
+      "not_pending": "This request has already been decided.",
+      "validation": "Check the highlighted fields and try again.",
+      "unavailable": "The service is unavailable right now. Try again in a few minutes."
     }
   }
 }

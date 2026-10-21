@@ -4,10 +4,10 @@ import { signIn, signUpAndVerify, uniqueEmail } from "./helpers";
 
 // The upload API through the real Next.js server (ADR-004, 4a): session
 // cookie, request body streaming, size and type checks, owner-only status.
-// There is no upload UI yet (step 4b adds it), and the worker is not part of
-// the E2E run, so uploads stay `processing` here; scanning, re-encoding and
-// signed URLs are covered against real clamd and MinIO by
-// tests/integration/uploads.test.ts.
+// The worker is not part of the E2E run, so uploads stay `processing` here;
+// scanning, re-encoding and signed URLs are covered against real clamd and
+// MinIO by tests/integration/uploads.test.ts. The upload UI is exercised by
+// verification.spec.ts.
 
 // Own sign-up budget, as in profiles.spec.ts.
 function clientIp() {

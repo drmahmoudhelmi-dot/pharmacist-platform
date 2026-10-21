@@ -3,6 +3,28 @@ import { Link } from "@/shared/i18n/navigation";
 import type { ProfileView as View } from "../service";
 import { formatMonth } from "./format";
 
+/**
+ * Shown only when the verification module reports the owner as verified.
+ * The check mark is not mirrored in RTL.
+ */
+export function VerifiedBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-sm font-semibold text-white"
+      data-testid="verified-badge"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        className="size-4 fill-current"
+      >
+        <path d="M8.2 13.6 4.6 10l-1.2 1.2 4.8 4.8 9-9-1.2-1.2z" />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
 /** A profile as members see it. Receives only public fields (see the service). */
 export async function ProfileView({ view }: { view: View }) {
   const t = await getTranslations("ProfileView");
@@ -38,6 +60,7 @@ export async function ProfileView({ view }: { view: View }) {
         <h2 className="text-xl font-bold" data-testid="profile-name">
           <bdi>{view.displayName}</bdi>
         </h2>
+        {view.verified ? <VerifiedBadge label={t("verifiedBadge")} /> : null}
         {view.headline ? (
           <p className="text-lg">
             <bdi>{view.headline}</bdi>

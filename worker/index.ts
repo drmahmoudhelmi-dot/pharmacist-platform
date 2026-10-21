@@ -9,9 +9,10 @@ import sharp from "sharp";
 import { scanBuffer } from "@/shared/av/clamd";
 import { parseWorkerEnv } from "@/shared/config/env";
 import { createWorkerBoss } from "@/shared/jobs/boss";
+import { createSmtpSender } from "@/shared/email/smtp";
 import { createLogger } from "@/shared/logging/logger";
 import { getS3 } from "@/shared/storage/client";
-import { registerHandlers } from "./handlers";
+import { registerHandlers, registerSchedules } from "./handlers";
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
 
@@ -49,8 +50,15 @@ async function main() {
     db: drizzle(pool),
     store: { s3: getS3(), bucket: env.S3_PRIVATE_BUCKET },
     scan: (bytes) => scanBuffer(clamd, bytes),
+    emailSender: createSmtpSender({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      from: env.EMAIL_FROM,
+    }),
+    appUrl: env.APP_URL.replace(/\/+$/, ""),
     logger,
   });
+  await registerSchedules(boss);
   logger.info({ event: "worker.started" });
 }
 

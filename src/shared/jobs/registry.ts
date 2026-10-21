@@ -28,6 +28,10 @@ const DEAD_LETTER = {
 } as const satisfies QueueSettings;
 
 const uploadPayload = z.strictObject({ uploadId: z.uuid() });
+const verificationNoticePayload = z.strictObject({
+  submissionId: z.uuid(),
+  kind: z.enum(["received", "verified", "rejected"]),
+});
 
 export const JOBS = {
   "upload.process.dead": {
@@ -49,6 +53,39 @@ export const JOBS = {
       expireInSeconds: 120,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       deadLetter: "upload.process.dead",
+    },
+  },
+  "verification.notify.dead": {
+    payload: verificationNoticePayload,
+    queue: DEAD_LETTER,
+  },
+  // Email the user that their submission was received, verified or rejected
+  // (src/modules/verification/notifications.ts). Enqueued in the same
+  // transaction as the change it reports.
+  "verification.notify": {
+    payload: verificationNoticePayload,
+    queue: {
+      // Rides out an SMTP outage of about an hour. A retry after a send that
+      // succeeded but was not acknowledged can deliver the email twice.
+      retryLimit: 8,
+      retryDelay: 30,
+      retryBackoff: true,
+      retryDelayMax: 900,
+      expireInSeconds: 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      deadLetter: "verification.notify.dead",
+    },
+  },
+  // Daily (worker schedule, Africa/Cairo): verified submissions whose card
+  // expiry date has passed become `expired`. Idempotent; no payload.
+  "verification.expire": {
+    payload: z.strictObject({}),
+    queue: {
+      retryLimit: 5,
+      retryDelay: 60,
+      retryBackoff: true,
+      expireInSeconds: 300,
+      deleteAfterSeconds: 30 * 24 * 60 * 60,
     },
   },
 } as const satisfies Record<string, JobDefinition>;
