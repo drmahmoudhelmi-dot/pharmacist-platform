@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { requireStaff } from "@/modules/identity/policy";
-import { PageShell } from "@/shared/ui/page-shell";
+import { can, requireStaff } from "@/modules/identity/policy";
+import { PageShell, TextLink } from "@/shared/ui/page-shell";
 import { isLocale } from "@/shared/i18n/routing";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -23,6 +23,9 @@ export default async function StaffPage({ params }: Props) {
           actor.roles.map((role) => tr(role)),
         )}
       </p>
+      {can(actor, "verification.review") ? (
+        <TextLink href="/staff/verification">{t("verificationLink")}</TextLink>
+      ) : null}
     </PageShell>
   );
 }

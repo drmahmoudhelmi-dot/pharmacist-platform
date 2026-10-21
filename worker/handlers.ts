@@ -1,7 +1,12 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
 import { failUpload, processUpload } from "@/modules/uploads/processing";
+import {
+  expireVerifications,
+  sendVerificationNotice,
+} from "@/modules/verification/jobs";
 import type { ScanResult } from "@/shared/av/clamd";
+import type { EmailSender } from "@/shared/email/sender";
 import type { PgBoss } from "@/shared/jobs/boss";
 import { type JobName, safeParsePayload } from "@/shared/jobs/registry";
 import type { ObjectStore } from "@/shared/storage/objects";
@@ -15,6 +20,9 @@ export type WorkerDeps = {
   db: NodePgDatabase;
   store: ObjectStore;
   scan: (bytes: Uint8Array) => Promise<ScanResult>;
+  emailSender: EmailSender;
+  /** Public origin for links in emails, without a trailing slash. */
+  appUrl: string;
   logger: Logger;
 };
 
@@ -45,12 +53,48 @@ export const HANDLERS: Record<JobName, Handler> = {
     const payload = payloadOf(deps, "upload.process.dead", data, jobId);
     if (payload) await failUpload(deps, payload.uploadId);
   },
+  "verification.notify": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "verification.notify", data, jobId);
+    if (payload)
+      await sendVerificationNotice(deps, payload.submissionId, payload.kind);
+  },
+  "verification.notify.dead": async (deps, data, jobId) => {
+    // Every retry failed: the user gets no email for this event. Recorded for
+    // the operator (ids only); the submission itself is unaffected.
+    const payload = payloadOf(deps, "verification.notify.dead", data, jobId);
+    if (payload)
+      deps.logger.error({
+        event: "verification.notice_failed",
+        submissionId: payload.submissionId,
+        kind: payload.kind,
+      });
+  },
+  "verification.expire": async (deps, data, jobId) => {
+    if (payloadOf(deps, "verification.expire", data, jobId))
+      await expireVerifications(deps);
+  },
 };
+
+/**
+ * Recurring jobs, created or updated by the worker at start-up (idempotent).
+ * Cron in Africa/Cairo: 00:17 daily, just after the date changes in Egypt.
+ */
+export const SCHEDULES = [
+  { name: "verification.expire", cron: "17 0 * * *", tz: "Africa/Cairo" },
+] as const;
+
+export async function registerSchedules(boss: PgBoss) {
+  for (const s of SCHEDULES)
+    await boss.schedule(s.name, s.cron, {}, { tz: s.tz });
+}
 
 /** Concurrent jobs per queue in this process. Each upload job holds ≤ 8 MB plus decode buffers. */
 const CONCURRENCY: Record<JobName, number> = {
   "upload.process": 2,
   "upload.process.dead": 1,
+  "verification.notify": 2,
+  "verification.notify.dead": 1,
+  "verification.expire": 1,
 };
 
 export async function registerHandlers(boss: PgBoss, deps: WorkerDeps) {

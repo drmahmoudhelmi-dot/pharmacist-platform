@@ -16,3 +16,9 @@ export {
   profile,
 } from "@/modules/profiles/schema";
 export { upload } from "@/modules/uploads/schema";
+export {
+  documentAccessLog,
+  verificationDecision,
+  verificationDocument,
+  verificationSubmission,
+} from "@/modules/verification/schema";

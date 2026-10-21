@@ -26,12 +26,13 @@ export const STATIC_SECURITY_HEADERS = [
 export function buildContentSecurityPolicy(
   nonce: string,
   isDevelopment: boolean,
+  extraImageOrigins: readonly string[] = [],
 ): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' ${isDevelopment ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
-    "img-src 'self' blob: data:",
+    ["img-src 'self' blob: data:", ...extraImageOrigins].join(" "),
     "font-src 'self'",
     "connect-src 'self'",
     "object-src 'none'",
@@ -39,6 +40,23 @@ export function buildContentSecurityPolicy(
     "form-action 'self'",
     "frame-ancestors 'none'",
   ].join("; ");
+}
+
+/**
+ * The origin of a URL, for a CSP source list, or null when it is not an
+ * http(s) URL. Used for the private bucket's endpoint: a reviewer's browser
+ * loads verification documents from short-lived signed URLs on it (ADR-004).
+ */
+export function originOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? parsed.origin
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** 128 random bits, base64. */

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
 import type { Actor } from "@/modules/identity/policy";
@@ -221,6 +221,42 @@ export async function getUploadStatus(
     status: row.status,
     rejectReason: isRejectReason(row.rejectReason) ? row.rejectReason : null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Attaching uploads to another module's record (verification, 4b)
+
+/** What a caller attaching uploads learns about each of the actor's own uploads. */
+export type AttachableUpload = { id: string; status: UploadStatus };
+
+/**
+ * The actor's own uploads among `ids` with the given purpose, and their status.
+ * Ids that are malformed, missing, someone else's or of another purpose are
+ * simply absent from the result, so a caller cannot tell them apart. Accepts a
+ * transaction, so the check can run inside the caller's write.
+ */
+export async function findOwnUploads(
+  db: Pick<Db, "select">,
+  actor: Actor,
+  ids: readonly unknown[],
+  purpose: UploadPurpose,
+): Promise<AttachableUpload[]> {
+  if (!can(actor, "upload.readStatus", { ownerId: actor.userId })) return [];
+  const valid = [...new Set(ids.filter(isUuid))];
+  if (valid.length === 0) return [];
+  const rows = await db
+    .select({ id: upload.id, status: upload.status })
+    .from(upload)
+    .where(
+      and(
+        inArray(upload.id, valid),
+        eq(upload.userId, actor.userId),
+        eq(upload.purpose, purpose),
+      ),
+    );
+  return rows.flatMap((row) =>
+    isUploadStatus(row.status) ? [{ id: row.id, status: row.status }] : [],
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -226,6 +226,7 @@ export function ChoiceGroup({
   defaultValues = [],
   hint,
   error,
+  onChange,
 }: {
   name: string;
   legend: string;
@@ -234,6 +235,8 @@ export function ChoiceGroup({
   defaultValues?: readonly string[];
   hint?: string;
   error?: string | null;
+  /** Called with the option's value when it is checked. */
+  onChange?: (value: string) => void;
 }) {
   const { hintId, errorId, describedBy } = useFieldIds(hint, error);
   return (
@@ -250,6 +253,13 @@ export function ChoiceGroup({
             name={name}
             value={o.value}
             defaultChecked={defaultValues.includes(o.value)}
+            onChange={
+              onChange
+                ? (e) => {
+                    if (e.target.checked) onChange(o.value);
+                  }
+                : undefined
+            }
             className={boxClass}
           />
           <span className="flex flex-col">

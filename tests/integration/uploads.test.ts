@@ -94,6 +94,8 @@ beforeAll(async () => {
     db: h.db,
     store,
     scan: (bytes) => scanBuffer(clamd.config, bytes),
+    emailSender: { send: async () => {} },
+    appUrl: APP_URL,
     logger,
   };
 }, 360_000);

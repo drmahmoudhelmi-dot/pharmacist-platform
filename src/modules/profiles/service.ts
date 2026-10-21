@@ -4,6 +4,11 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { getAccountExport } from "@/modules/identity/export";
 import type { Actor } from "@/modules/identity/policy";
 import {
+  exportOwnVerification,
+  getVerificationBadge,
+  type VerificationExportItem,
+} from "@/modules/verification/service";
+import {
   type CareerStage,
   isCareerStage,
   isSpecialty,
@@ -99,6 +104,11 @@ export type ProfileView = {
   isOwner: boolean;
   /** Only meaningful to the owner; others never see a hidden profile. */
   hidden: boolean;
+  /**
+   * True only when the owner's latest verification submission is verified
+   * (verification module). Pending or rejected submissions show nothing.
+   */
+  verified: boolean;
 };
 
 const publicProfileColumns = {
@@ -378,7 +388,10 @@ export async function getProfileForViewer(
   const row = rows[0];
   if (!row || !canViewProfile(viewer, row)) return null;
 
-  const items = await experienceOf(db, row.userId);
+  const [items, badge] = await Promise.all([
+    experienceOf(db, row.userId),
+    getVerificationBadge(db, row.userId),
+  ]);
   const own = toOwnProfile(row);
   return {
     id: own.id,
@@ -405,6 +418,7 @@ export async function getProfileForViewer(
     })),
     isOwner: row.userId === viewer.userId,
     hidden: own.visibility === "hidden",
+    verified: badge === "verified",
   };
 }
 
@@ -423,10 +437,13 @@ export type DataExport = {
     | null;
   professionalDetails: OwnProfessionalDetails | null;
   experience: Omit<ExperienceItem, "id">[];
+  /** Status, claims and masked ID per submission; never the encrypted ID. */
+  verification: VerificationExportItem[];
 };
 
 /**
- * Everything the platform holds about the caller from identity and profiles.
+ * Everything the platform holds about the caller from identity, profiles and
+ * verification (masked national ID, never the encrypted value or the photos).
  * Never includes password hashes, session tokens, TOTP secrets or backup
  * codes (identity's export selects explicit columns only).
  */
@@ -437,13 +454,15 @@ export async function exportOwnData(
 ): Promise<DataExport | null> {
   if (!can(actor, "professionalDetails.read", { ownerId: actor.userId }))
     return null;
-  const [account, own, details, items, governorates] = await Promise.all([
-    getAccountExport(db, actor.userId),
-    getOwnProfile(db, actor),
-    getOwnProfessionalDetails(db, actor),
-    listOwnExperience(db, actor),
-    listGovernorates(db),
-  ]);
+  const [account, own, details, items, governorates, verification] =
+    await Promise.all([
+      getAccountExport(db, actor.userId),
+      getOwnProfile(db, actor),
+      getOwnProfessionalDetails(db, actor),
+      listOwnExperience(db, actor),
+      listGovernorates(db),
+      exportOwnVerification(db, actor),
+    ]);
   let exportedProfile: DataExport["profile"] = null;
   if (own) {
     const { governorateId, ...rest } = own;
@@ -468,5 +487,6 @@ export async function exportOwnData(
       startMonth,
       endMonth,
     })),
+    verification: verification ?? [],
   };
 }

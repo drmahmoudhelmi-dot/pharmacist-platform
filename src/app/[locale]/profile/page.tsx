@@ -9,6 +9,8 @@ import {
 import { ProfessionalDetailsForm } from "@/modules/profiles/ui/details-form";
 import { ExperienceSection } from "@/modules/profiles/ui/experience-section";
 import { ProfileForm } from "@/modules/profiles/ui/profile-form";
+import { VerifiedBadge } from "@/modules/profiles/ui/profile-view";
+import { getMyVerificationStatus } from "@/modules/verification/service";
 import { getDb } from "@/shared/db/client";
 import { isLocale } from "@/shared/i18n/routing";
 import { PageShell, TextLink } from "@/shared/ui/page-shell";
@@ -22,13 +24,17 @@ export default async function ProfilePage({ params }: Props) {
   if (isLocale(locale)) setRequestLocale(locale);
   const actor = await requireActor();
   const db = getDb();
-  const [profile, details, experience, governorates] = await Promise.all([
-    getOwnProfile(db, actor),
-    getOwnProfessionalDetails(db, actor),
-    listOwnExperience(db, actor),
-    listGovernorates(db),
-  ]);
+  const [profile, details, experience, governorates, verification] =
+    await Promise.all([
+      getOwnProfile(db, actor),
+      getOwnProfessionalDetails(db, actor),
+      listOwnExperience(db, actor),
+      listGovernorates(db),
+      getMyVerificationStatus(db, actor),
+    ]);
   const t = await getTranslations("Profile");
+  const tv = await getTranslations("ProfileView");
+  const tver = await getTranslations("Verification");
   const tc = await getTranslations("Common");
 
   return (
@@ -57,6 +63,22 @@ export default async function ProfilePage({ params }: Props) {
           {t("empty")}
         </p>
       )}
+      <section
+        aria-labelledby="verification-heading"
+        className="flex flex-col gap-2 rounded-lg border border-muted bg-surface p-3"
+      >
+        <h2 id="verification-heading" className="text-lg font-semibold">
+          {t("verificationHeading")}:{" "}
+          <span data-testid="profile-verification-state">
+            {verification?.state === "verified" ? (
+              <VerifiedBadge label={tv("verifiedBadge")} />
+            ) : (
+              tver(`states.${verification?.state ?? "unverified"}`)
+            )}
+          </span>
+        </h2>
+        <TextLink href="/verification">{t("verificationLink")}</TextLink>
+      </section>
       <section
         aria-labelledby="profile-heading"
         className="flex flex-col gap-3"
