@@ -15,3 +15,4 @@ export {
   professionalDetails,
   profile,
 } from "@/modules/profiles/schema";
+export { upload } from "@/modules/uploads/schema";

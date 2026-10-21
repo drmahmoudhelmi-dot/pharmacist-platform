@@ -32,7 +32,9 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Testcontainers starts Postgres, MinIO and clamd (clamd loads its bundled
+    # signatures in about 20-60 s and needs about 1.5 GB of the runner's memory).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
@@ -75,7 +77,9 @@ jobs:
       # Identity journeys need Postgres and Mailpit (verification emails).
       - run: cp .env.example .env
       # Retry once: MinIO's health check can pass during its own setup restart.
-      - run: docker compose up -d --wait || docker compose up -d --wait
+      # clamd is left out: E2E does not run the worker (uploads stay processing);
+      # the scan path is covered by the integration job.
+      - run: docker compose up -d --wait postgres minio minio-init mailpit || docker compose up -d --wait postgres minio minio-init mailpit
       - run: pnpm db:migrate
       - run: pnpm build
       - run: pnpm test:e2e

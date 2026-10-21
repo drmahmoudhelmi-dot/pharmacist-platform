@@ -307,5 +307,25 @@
   "NotFound": {
     "title": "Page not found",
     "body": "We could not find what you are looking for. The link may be wrong or no longer available."
+  },
+  "UploadErrors": {
+    "unauthenticated": "Sign in to upload files.",
+    "forbidden": "You cannot upload files from here. Confirm your email address, then try again from this site.",
+    "invalid_request": "Choose one photo to upload.",
+    "too_large": "The photo is larger than 8 MB. Choose a smaller one.",
+    "unsupported_type": "Only JPEG, PNG or WebP photos are accepted.",
+    "rate_limited": "Too many uploads in the last hour. Try again later.",
+    "too_many_pending": "Wait until your earlier photos finish processing, then try again.",
+    "not_found": "This file was not found.",
+    "unavailable": "Uploads are unavailable right now. Try again in a few minutes."
+  },
+  "UploadStatus": {
+    "processing": "Checking the photo…",
+    "clean": "Photo received.",
+    "rejected": {
+      "infected": "The photo was refused because the security check flagged it.",
+      "undecodable": "The photo could not be read. Take a new photo and upload it.",
+      "processing_failed": "The photo could not be processed. Upload it again."
+    }
   }
 }

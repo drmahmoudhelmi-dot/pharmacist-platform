@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEnv } from "./env";
+import { parseEnv, parseWorkerEnv } from "./env";
 
 const valid = {
   DATABASE_URL: "postgres://u:SECRET-PASS@localhost:5432/db",
@@ -68,5 +68,24 @@ describe("parseEnv", () => {
     expect(() =>
       parseEnv({ ...valid, AUTH_BREACHED_PASSWORD_CHECK: "no" }),
     ).toThrowError(/AUTH_BREACHED_PASSWORD_CHECK/);
+  });
+});
+
+describe("parseWorkerEnv", () => {
+  it("requires the clamd address on top of the app variables", () => {
+    expect(() => parseWorkerEnv(valid)).toThrowError(
+      /CLAMAV_HOST, CLAMAV_PORT/,
+    );
+    const env = parseWorkerEnv({
+      ...valid,
+      CLAMAV_HOST: "clamav",
+      CLAMAV_PORT: "3310",
+    });
+    expect(env.CLAMAV_PORT).toBe(3310);
+    expect(env.DATABASE_URL).toBe(valid.DATABASE_URL);
+  });
+
+  it("does not require clamd for the web app", () => {
+    expect(() => parseEnv(valid)).not.toThrow();
   });
 });

@@ -64,6 +64,9 @@ export async function startHarness() {
   const url = container.getConnectionUri();
   await runMigrations(url);
   const pool = new Pool({ connectionString: url, max: 5 });
+  // A connection still closing when the container stops reports 57P01 as an
+  // idle-client error; without a listener that becomes an unhandled error.
+  pool.on("error", () => {});
   const db: NodePgDatabase = drizzle(pool);
 
   const outbox: EmailMessage[] = [];

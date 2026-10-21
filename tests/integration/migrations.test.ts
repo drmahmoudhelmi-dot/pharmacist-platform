@@ -14,6 +14,7 @@ describe("database migrations", () => {
     container = await new PostgreSqlContainer("postgres:18-alpine").start();
     await runMigrations(container.getConnectionUri());
     pool = new Pool({ connectionString: container.getConnectionUri() });
+    pool.on("error", () => {}); // see auth-harness.ts
   });
 
   afterAll(async () => {
@@ -30,6 +31,25 @@ describe("database migrations", () => {
       "select count(*)::int as n from drizzle.__drizzle_migrations",
     );
     expect(applied.rows[0]?.n).toBeGreaterThanOrEqual(1);
+  });
+
+  it("installs pg-boss in its own schema with the registry's queues", async () => {
+    const queues = await pool.query<{
+      name: string;
+      dead_letter: string | null;
+    }>("select name, dead_letter from pgboss.queue order by name");
+    expect(queues.rows).toEqual([
+      { name: "upload.process", dead_letter: "upload.process.dead" },
+      { name: "upload.process.dead", dead_letter: null },
+    ]);
+  });
+
+  it("is idempotent: running the migrations again changes nothing", async () => {
+    await runMigrations(container.getConnectionUri());
+    const queues = await pool.query(
+      "select count(*)::int as n from pgboss.queue",
+    );
+    expect(queues.rows[0]?.n).toBe(2);
   });
 
   it("runs queries against PostgreSQL 18", async () => {
