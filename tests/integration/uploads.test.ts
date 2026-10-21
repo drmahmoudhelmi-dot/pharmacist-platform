@@ -131,7 +131,7 @@ function uploadRequest(
   form.append("purpose", options.purpose ?? "verification_document");
   form.append(
     "file",
-    new Blob([bytes], { type: options.type ?? "image/jpeg" }),
+    new Blob([new Uint8Array(bytes)], { type: options.type ?? "image/jpeg" }),
     options.filename ?? "photo.jpg",
   );
   return new Request(`${APP_URL}/api/uploads`, {

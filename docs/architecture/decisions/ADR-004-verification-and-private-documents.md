@@ -37,6 +37,22 @@ Delivered in two pull requests: 4a (background worker and private upload pipelin
 | Notifications | User gets an email on submission received, verified and rejected (through the worker). |
 | Retention | Documents and ciphertext of rejected submissions are kept until counsel answers question 6 (data-protection status); then a deletion job is added. Nothing is deleted automatically in this step. |
 
+## Implementation notes (4a, added after it was built)
+
+- Job registry `src/shared/jobs/registry.ts`: queue names, queue settings and a Zod payload schema per job; payloads carry ids only. `upload.process` retries 5 times with exponential backoff (10 s up to 5 min, 120 s expiry), then pg-boss copies it to `upload.process.dead`, whose handler deletes both possible objects and marks the upload `rejected` / `processing_failed`. An invalid payload is logged and completed, not retried.
+- pg-boss lives in its own `pgboss` schema, installed and upgraded by `pnpm db:migrate` after the Drizzle migrations (also in the test harness); app and worker start with `migrate: false`. The upload row and its job are written in one transaction (pg-boss's Drizzle adapter).
+- Worker health: pg-boss's own instance registry (heartbeat every 10 s; `pnpm worker:health`). Not part of `/api/ready`: the web app keeps accepting uploads while the worker is down, and pulling every web instance out of rotation for that would turn a delay into an outage.
+- Magic-byte detection is a ~20-line allow-list (`detect.ts`) rather than `file-type`: three signatures, no dependency, and sharp's full decode in the worker is the real gate.
+- clamd client: own INSTREAM/PING implementation over `node:net` (timeouts, 20 MB cap, unexpected replies treated as errors so they retry). The npm clients are unmaintained or wrap the binary.
+- Multipart is parsed with the platform `FormData` parser behind a byte-counting stream: a declared `Content-Length` over 8 MiB + 64 KiB is refused before reading; a longer stream is cut off there. The file is held in memory (bounded) to sniff and store it.
+- Admission before the body is read: 20 attempts per user per hour (Better Auth's `rate_limit` table, key `upload|user|<id>`; refused attempts count) and at most 10 uploads in `processing`, re-checked under a per-user advisory lock when the row is inserted.
+- Same-origin check on `POST /api/uploads` (Origin header, else `Sec-Fetch-Site`) on top of SameSite=Lax cookies.
+- Keys: `quarantine/<uuid>` (random), output `documents/<same uuid>.jpg`, so a repeated job overwrites the same object; neither key nor the client-visible upload id is derivable from the other. Clients see the upload id, status and reason code only.
+- Re-encode: sharp, EXIF orientation applied, fit inside 2,400 px, alpha flattened on white, JPEG quality 85 (mozjpeg), all metadata dropped, 50-megapixel input limit against decompression bombs, `failOn: warning` (truncated files are refused).
+- `issueSignedUrl` takes a `ViewAuthorizer` from the caller and calls it only for a clean upload of the expected purpose, right before presigning, so 4b's authorizer can check the reviewer role and write `document_access_log` for real views only. 4a ships `ownerMayView`; there is no view route yet.
+- Integration tests run real Postgres, MinIO and clamd through Testcontainers. EICAR cannot pass the image signature check, so the infected path replaces a quarantined object with EICAR before the scan; a directly uploaded EICAR file is refused with 415.
+- Known limits: presigned URLs use `S3_ENDPOINT`, which must be reachable by browsers in production (or a separate public endpoint must be added); objects of deleted accounts are not removed yet (rows cascade; deletion job waits for counsel, see Retention); a crash between storing the quarantine object and committing the row leaves an orphan, which a `quarantine/` lifecycle rule must expire.
+
 ## Alternatives considered
 
 - Presigned direct-to-bucket uploads: rejected for launch; the server cannot inspect content before the object exists, and quarantine plus the job already gives the same safety with simpler permissions. Revisit if upload volume strains the app servers.

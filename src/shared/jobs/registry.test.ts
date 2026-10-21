@@ -12,7 +12,7 @@ const ID = "6f1c9a52-3d4e-4b8a-9c1d-2e3f4a5b6c7d";
 describe("job registry", () => {
   it("declares each dead-letter queue before the queue that uses it", () => {
     for (const [index, name] of JOB_NAMES.entries()) {
-      const queue: { deadLetter?: string } = JOBS[name].queue;
+      const queue = JOBS[name].queue as { deadLetter?: string };
       if (!queue.deadLetter) continue;
       expect(isJobName(queue.deadLetter)).toBe(true);
       expect(JOB_NAMES.indexOf(queue.deadLetter as never)).toBeLessThan(index);
