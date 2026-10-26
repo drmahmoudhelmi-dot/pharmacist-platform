@@ -28,7 +28,7 @@ export const dynamicParams = true;
 /**
  * One organization, for its members only. A missing organization, a
  * malformed id and someone else's organization all get the same 404.
- * Owners also see the edit form, members and invitations.
+ * Owners and admins also see the edit form, members and invitations.
  */
 export default async function OrganizationPage({ params }: Props) {
   const { locale, id } = await params;
@@ -54,6 +54,7 @@ export default async function OrganizationPage({ params }: Props) {
   const tr = await getTranslations("OrganizationRoles");
   const tk = await getTranslations("OrganizationKinds");
   const tc = await getTranslations("Common");
+  const tj = await getTranslations("Jobs");
   const governorateName = view.governorate
     ? locale === "en"
       ? view.governorate.nameEn
@@ -83,6 +84,9 @@ export default async function OrganizationPage({ params }: Props) {
         </dl>
         <p className="text-sm text-muted">{t("notVerifiedNote")}</p>
       </section>
+      <TextLink href={`/organizations/${view.id}/jobs`}>
+        {tj("orgLink")}
+      </TextLink>
       {manages ? (
         <>
           <section

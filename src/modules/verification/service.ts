@@ -372,6 +372,32 @@ export async function getVerificationBadge(
   return row?.status === "verified" ? "verified" : null;
 }
 
+/**
+ * Of these users, the ones whose latest submission is verified (the same rule
+ * as getVerificationBadge), in one query: for lists such as the job board.
+ */
+export async function getVerifiedUserIds(
+  db: Db,
+  userIds: readonly string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(userIds)].filter(isUuid);
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .selectDistinctOn([verificationSubmission.userId], {
+      userId: verificationSubmission.userId,
+      status: verificationSubmission.status,
+    })
+    .from(verificationSubmission)
+    .where(inArray(verificationSubmission.userId, ids))
+    .orderBy(
+      verificationSubmission.userId,
+      desc(verificationSubmission.submittedAt),
+    );
+  return new Set(
+    rows.filter((r) => r.status === "verified").map((r) => r.userId),
+  );
+}
+
 export type VerificationExportItem = {
   credentialType: string;
   status: string;

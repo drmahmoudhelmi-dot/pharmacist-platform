@@ -48,6 +48,7 @@ async function main() {
   await boss.start({ attempts: 5 });
   await registerHandlers(boss, {
     db: drizzle(pool),
+    boss,
     store: { s3: getS3(), bucket: env.S3_PRIVATE_BUCKET },
     scan: (bytes) => scanBuffer(clamd, bytes),
     emailSender: createSmtpSender({

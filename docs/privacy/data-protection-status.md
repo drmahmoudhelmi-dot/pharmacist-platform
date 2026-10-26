@@ -36,8 +36,11 @@ Tracks Egyptian data-protection obligations (Law 151 of 2020 and its executive r
 | Document views and national ID reveals (who, what, when, IP) | Audit of access to identity documents | `document_access_log`, append-only |
 | Consent text version accepted with a submission | Record of consent (wording pending, question 5) | `verification_submission.consent_version` (`draft-pending-counsel` until counsel's wording is in) |
 | Organizations (pharmacy or chain name, governorate, optional business address) | Employer identity for job posts (step 6) | `organization`, entered by members; unverified |
-| Organization membership (user, role, who added them, when) | Who may act for an employer | `organization_member`; owners and admins see members' emails |
+| Organization membership (user, role, who added them, when) | Who may act for an employer | `organization_member`; owners see members' emails |
 | Invited email addresses, role, inviter, status and times | Inviting someone to an organization, including people without an account | `organization_invitation`; the address is emailed once by the worker. Kept after the invitation closes, pending question 6 |
 | Membership and invitation changes (actor, action, member or invitation id, roles, time) | Audit of who gave whom access to an employer | `organization_audit`, append-only |
+| Job posts (content entered by organization members; public once published) | Publishing vacancies on the job board | `job`. No personal data is required; moderators reject contact details in the text |
+| Job moderation decisions (moderator, decision, reason code, internal note, time) | Accountability for job moderation | `job_moderation_decision`, append-only. The employer sees the reason only, not the note |
+| Job history (who changed a job's status, and when) | Accountability for job status changes | `job_event`, append-only |
 | CVs and applications | Job applications | Private storage and jobs tables |
 | Staff actions | Audit trail | Audit log |

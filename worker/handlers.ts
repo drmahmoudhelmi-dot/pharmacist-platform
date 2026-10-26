@@ -1,5 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
+import { expireJobs, sendJobNotice } from "@/modules/jobs/jobs";
 import { sendInvitationNotice } from "@/modules/organizations/jobs";
 import { failUpload, processUpload } from "@/modules/uploads/processing";
 import {
@@ -19,6 +20,8 @@ import type { ObjectStore } from "@/shared/storage/objects";
 
 export type WorkerDeps = {
   db: NodePgDatabase;
+  /** For jobs that enqueue follow-ups (the expiry pass queues emails). */
+  boss: PgBoss;
   store: ObjectStore;
   scan: (bytes: Uint8Array) => Promise<ScanResult>;
   emailSender: EmailSender;
@@ -84,6 +87,22 @@ export const HANDLERS: Record<JobName, Handler> = {
         invitationId: payload.invitationId,
       });
   },
+  "jobs.notify": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "jobs.notify", data, jobId);
+    if (payload) await sendJobNotice(deps, payload.jobId, payload.kind);
+  },
+  "jobs.notify.dead": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "jobs.notify.dead", data, jobId);
+    if (payload)
+      deps.logger.error({
+        event: "jobs.notice_failed",
+        jobId: payload.jobId,
+        kind: payload.kind,
+      });
+  },
+  "jobs.expire": async (deps, data, jobId) => {
+    if (payloadOf(deps, "jobs.expire", data, jobId)) await expireJobs(deps);
+  },
   "verification.expire": async (deps, data, jobId) => {
     if (payloadOf(deps, "verification.expire", data, jobId))
       await expireVerifications(deps);
@@ -92,10 +111,11 @@ export const HANDLERS: Record<JobName, Handler> = {
 
 /**
  * Recurring jobs, created or updated by the worker at start-up (idempotent).
- * Cron in Africa/Cairo: 00:17 daily, just after the date changes in Egypt.
+ * Cron in Africa/Cairo: 00:17 and 00:23 daily, just after the date changes.
  */
 export const SCHEDULES = [
   { name: "verification.expire", cron: "17 0 * * *", tz: "Africa/Cairo" },
+  { name: "jobs.expire", cron: "23 0 * * *", tz: "Africa/Cairo" },
 ] as const;
 
 export async function registerSchedules(boss: PgBoss) {
@@ -112,6 +132,9 @@ const CONCURRENCY: Record<JobName, number> = {
   "verification.expire": 1,
   "organization.notify": 2,
   "organization.notify.dead": 1,
+  "jobs.notify": 2,
+  "jobs.notify.dead": 1,
+  "jobs.expire": 1,
 };
 
 export async function registerHandlers(boss: PgBoss, deps: WorkerDeps) {

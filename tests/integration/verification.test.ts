@@ -98,6 +98,7 @@ beforeAll(async () => {
   uploadDeps = { db: h.db, store, boss, logger };
   workerDeps = {
     db: h.db,
+    boss,
     store,
     scan: async () => ({ infected: false }),
     emailSender: { send: async (m) => void outbox.push(m) },

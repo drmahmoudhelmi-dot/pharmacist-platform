@@ -7,7 +7,8 @@
     "signUp": "Create account",
     "myProfile": "My profile",
     "myAccount": "My account",
-    "myOrganizations": "My organizations"
+    "myOrganizations": "My organizations",
+    "jobs": "Jobs"
   },
   "Meta": {
     "title": "Pharmacist Platform",
@@ -184,7 +185,8 @@
     "title": "Staff area",
     "body": "Staff tools arrive with the admin step. Your access is protected by two-step verification.",
     "rolesLabel": "Your roles",
-    "verificationLink": "Verification requests"
+    "verificationLink": "Verification requests",
+    "jobsLink": "Job moderation"
   },
   "Roles": {
     "support": "Support",
@@ -624,5 +626,227 @@
       "action": "View invitation",
       "note": "If you did not expect this invitation, ignore this email; nothing changes in your account."
     }
+  },
+  "JobEmail": {
+    "note": "This message is about a job you posted on the Pharmacist Platform for your organization.",
+    "reasonLabel": "Reason",
+    "approved": {
+      "subject": "“{title}” is published - Pharmacist Platform",
+      "heading": "Job approved",
+      "body": "The platform team reviewed “{title}” and approved it. It is now published for 30 days.",
+      "action": "View job"
+    },
+    "rejected": {
+      "subject": "“{title}” was not published - Pharmacist Platform",
+      "heading": "Job not approved",
+      "body": "The platform team reviewed “{title}” and did not approve it. You can edit it and submit it for review again.",
+      "action": "Edit job"
+    },
+    "expired": {
+      "subject": "“{title}” has expired - Pharmacist Platform",
+      "heading": "Job expired",
+      "body": "“{title}” has expired and no longer appears on the job board. You can copy it into a new draft and publish it again.",
+      "action": "View job"
+    }
+  },
+  "JobRejectReasons": {
+    "incomplete": "The job details are incomplete or unclear.",
+    "misleading_or_fraud": "The post is misleading or looks fraudulent.",
+    "not_pharmacy_related": "The job is not related to pharmacy work.",
+    "contact_details_in_text": "The description contains phone numbers or emails; applicants will contact you through the platform.",
+    "discriminatory": "The post contains discriminatory requirements.",
+    "other": "The post does not follow the platform's guidelines."
+  },
+  "Jobs": {
+    "orgLink": "Organization jobs",
+    "listTitle": "Organization jobs",
+    "listIntro": "Jobs created by the organization's members. The platform reviews the first job before it is published.",
+    "newJob": "New job",
+    "listEmpty": "No jobs yet. Create the organization's first job.",
+    "updatedAt": "Updated {date}",
+    "backToOrganization": "Back to the organization",
+    "newTitle": "New job",
+    "newIntro": "Enter the job details and save a draft, then send it for publication from the job page. Do not write phone numbers or email addresses; applicants will contact you through the platform.",
+    "titleLabel": "Job title",
+    "titleHint": "4 to 120 characters, for example: Morning-shift pharmacist.",
+    "categoryLabel": "Job type",
+    "employmentTypeLegend": "Employment type",
+    "temporaryHint": "For a temporary job, set the start and end dates.",
+    "startDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "governorateLabel": "Governorate",
+    "choose": "Choose",
+    "areaLabel": "District or street",
+    "areaHint": "Optional. For example: Dokki, or Tahrir Street. Up to 120 characters.",
+    "descriptionLabel": "Job description",
+    "descriptionHint": "30 to 4,000 characters: duties, hours and requirements. No phone numbers or email addresses.",
+    "minYearsLabel": "Minimum years of experience",
+    "minYearsHint": "A number from 0 to 40. Leave empty or write 0 if no experience is required.",
+    "careerStagesLegend": "Suitable career stages",
+    "careerStages": {
+      "student": "Pharmacy student",
+      "graduate": "Graduate",
+      "pharmacist": "Pharmacist"
+    },
+    "salaryMinLabel": "Monthly pay from (EGP)",
+    "salaryMaxLabel": "Monthly pay up to (EGP)",
+    "salaryHint": "Optional. Egyptian pounds per month, whole numbers.",
+    "create": "Save draft",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "working": "Working…",
+    "created": "Draft saved.",
+    "saved": "Changes saved.",
+    "statusLabel": "Status",
+    "statusHints": {
+      "draft": "A draft that has not been sent yet. Send it for publication when it is complete.",
+      "pending_review": "Waiting for the platform team's review. We will email you the result.",
+      "published": "Published and visible to everyone on the jobs page.",
+      "paused": "Paused and hidden from visitors. You can resume it.",
+      "closed": "Closed and cannot be reopened. You can create a new copy of it.",
+      "expired": "Its publication period has ended. You can create a new copy of it.",
+      "rejected": "Not accepted for publication. Edit it and send it again."
+    },
+    "rejectionHeading": "Why it was not published",
+    "rejectionDate": "Review decision on {date}",
+    "publishedOn": "Published {date}",
+    "expiresOn": "Expires {date}",
+    "viewPublic": "View the public page",
+    "editHeading": "Job details",
+    "readOnlyNote": "Job details cannot be edited once sent. To correct them, create a new copy.",
+    "actionsHeading": "Actions",
+    "submit": "Send for publication",
+    "submitted": {
+      "pending_review": "The job was sent for review. It will be published after the platform team approves it.",
+      "published": "The job is published."
+    },
+    "pause": "Pause",
+    "paused": "The job was paused.",
+    "resume": "Resume publication",
+    "resumed": "The job is published again.",
+    "resumedExpired": "The job's publication period ended while it was paused, so it is no longer published.",
+    "close": "Close the job",
+    "closeConfirm": "Close this job? Visitors will no longer see it and it cannot be reopened.",
+    "confirmClose": "Yes, close the job",
+    "closed": "The job was closed.",
+    "copy": "Create a new copy",
+    "copied": "A new draft copy was created.",
+    "delete": "Delete draft",
+    "deleteConfirm": "Delete this job permanently? This cannot be undone.",
+    "confirmDelete": "Yes, delete the job",
+    "deleted": "The job was deleted.",
+    "cancel": "Cancel",
+    "backToList": "All organization jobs",
+    "boardTitle": "Pharmacist jobs",
+    "boardIntro": "Jobs at pharmacies and chains in Egypt. Search by word or filter by governorate and type.",
+    "searchLabel": "Search jobs",
+    "searchHint": "A word from the job title or the district.",
+    "searchButton": "Search",
+    "governorateFilter": "Governorate",
+    "allGovernorates": "All governorates",
+    "categoryFilter": "Job type",
+    "allCategories": "All types",
+    "typeFilter": "Employment type",
+    "allTypes": "All employment types",
+    "resetFilters": "Clear search",
+    "resultsEmpty": "No matching jobs right now. Try changing your search.",
+    "resultsLabel": "Search results",
+    "nextPage": "Next page",
+    "pagination": "Job pages",
+    "verifiedPoster": "Verified poster",
+    "notReviewed": "The organization is not reviewed by the platform; its details are as entered by its members.",
+    "salaryRange": "{min} to {max} per month",
+    "salaryFrom": "From {min} per month",
+    "salaryUpTo": "Up to {max} per month",
+    "salaryNone": "Pay not stated",
+    "detailsHeading": "Job details",
+    "descriptionHeading": "Description",
+    "organizationLabel": "Organization",
+    "locationLabel": "Location",
+    "employmentTypeLabel": "Employment type",
+    "categoryLabelShort": "Type",
+    "periodLabel": "Work period",
+    "period": "{start} to {end}",
+    "experienceLabel": "Minimum experience (years)",
+    "stagesLabel": "Career stages",
+    "salaryLabel": "Pay",
+    "publishedLabel": "Published",
+    "backToBoard": "All jobs"
+  },
+  "JobErrors": {
+    "required": "This field is required.",
+    "tooShort": "The text is too short.",
+    "tooLong": "The text is longer than allowed.",
+    "invalidChoice": "Choose a value from the list.",
+    "invalidNumber": "Enter a whole number.",
+    "outOfRange": "The number is outside the allowed range.",
+    "invalidDate": "Enter a valid date.",
+    "inPast": "The date cannot be in the past.",
+    "endBeforeStart": "The end date is before the start date.",
+    "periodTooLong": "The period is longer than the allowed maximum of one year.",
+    "salaryOrder": "The maximum pay is lower than the minimum.",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You do not have permission for this action.",
+    "notFound": "We could not find this item; it may have changed or been removed. Refresh the page.",
+    "invalidState": "This action is not possible in the job's current state. Refresh the page.",
+    "limitReached": "The organization has reached its limit of open jobs. Close a job or delete a draft and try again.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your internet connection and try again."
+  },
+  "JobStatuses": {
+    "draft": "Draft",
+    "pending_review": "In review",
+    "published": "Published",
+    "paused": "Paused",
+    "closed": "Closed",
+    "expired": "Expired",
+    "rejected": "Not accepted"
+  },
+  "JobCategories": {
+    "pharmacist": "Pharmacist",
+    "pharmacy_manager": "Pharmacy manager",
+    "area_manager": "Area manager",
+    "trainee": "Trainee",
+    "other": "Other"
+  },
+  "EmploymentTypes": {
+    "full_time": "Full time",
+    "part_time": "Part time",
+    "temporary": "Temporary"
+  },
+  "StaffJobs": {
+    "queueTitle": "Job moderation",
+    "queueIntro": "Jobs waiting for review, oldest first. Reject jobs that contain phone numbers or emails or look fraudulent.",
+    "queueEmpty": "No jobs are waiting for review.",
+    "submittedAt": "Sent {date}",
+    "verifiedPoster": "Verified poster",
+    "unverifiedPoster": "Unverified poster",
+    "staffLink": "Staff area",
+    "detailTitle": "Review a job",
+    "decisionHeading": "Decision",
+    "decisionLabel": "Decision",
+    "decisions": {
+      "approved": "Approve and publish",
+      "rejected": "Reject"
+    },
+    "reasonLabel": "Reason for rejection",
+    "reasonPlaceholder": "Choose a reason",
+    "noteLabel": "Internal note (optional)",
+    "noteHint": "For staff only; the job's owner does not see it. Up to 500 characters.",
+    "submitDecision": "Record decision",
+    "confirm": {
+      "approved": "The job will be published immediately and its owner notified. This cannot be undone.",
+      "rejected": "The job will be rejected and its owner told the reason. This cannot be undone."
+    },
+    "confirmButton": {
+      "approved": "Confirm approval",
+      "rejected": "Confirm rejection"
+    },
+    "decided": {
+      "approved": "Approved; the job is published.",
+      "rejected": "The job was rejected."
+    },
+    "queueLink": "Back to the review queue",
+    "working": "Working…"
   }
 }

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
 import type { EmailSender } from "@/shared/email/sender";
@@ -11,7 +11,11 @@ import {
   isMemberRole,
   type MemberRole,
 } from "./constants";
-import { organization, organizationInvitation } from "./schema";
+import {
+  organization,
+  organizationInvitation,
+  organizationMember,
+} from "./schema";
 
 // The worker side of organizations (ADR-005): the `organization.notify`
 // invitation email. Runs in `pnpm worker`, not in the web app, so it does not
@@ -119,4 +123,27 @@ export async function sendInvitationNotice(
     invitationId,
   });
   return "sent";
+}
+
+/**
+ * Whether a user is currently a member of an organization, for worker-side
+ * code in other modules (jobs' notices skip former members). Worker-safe: no
+ * "server-only" import.
+ */
+export async function isOrganizationMember(
+  db: Db,
+  organizationId: string,
+  userId: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: organizationMember.id })
+    .from(organizationMember)
+    .where(
+      and(
+        eq(organizationMember.organizationId, organizationId),
+        eq(organizationMember.userId, userId),
+      ),
+    )
+    .limit(1);
+  return rows.length === 1;
 }

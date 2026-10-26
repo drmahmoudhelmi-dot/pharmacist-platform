@@ -33,6 +33,10 @@ const verificationNoticePayload = z.strictObject({
   kind: z.enum(["received", "verified", "rejected"]),
 });
 const invitationPayload = z.strictObject({ invitationId: z.uuid() });
+const jobNoticePayload = z.strictObject({
+  jobId: z.uuid(),
+  kind: z.enum(["approved", "rejected", "expired"]),
+});
 
 export const JOBS = {
   "upload.process.dead": {
@@ -95,6 +99,36 @@ export const JOBS = {
       expireInSeconds: 60,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       deadLetter: "organization.notify.dead",
+    },
+  },
+  "jobs.notify.dead": {
+    payload: jobNoticePayload,
+    queue: DEAD_LETTER,
+  },
+  // Email a job's creator about a moderation decision or the expiry
+  // (src/modules/jobs/jobs.ts). Enqueued with the change it reports.
+  "jobs.notify": {
+    payload: jobNoticePayload,
+    queue: {
+      retryLimit: 8,
+      retryDelay: 30,
+      retryBackoff: true,
+      retryDelayMax: 900,
+      expireInSeconds: 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      deadLetter: "jobs.notify.dead",
+    },
+  },
+  // Daily (worker schedule, Africa/Cairo): published and paused jobs past
+  // expires_at become expired. Idempotent; no payload.
+  "jobs.expire": {
+    payload: z.strictObject({}),
+    queue: {
+      retryLimit: 5,
+      retryDelay: 60,
+      retryBackoff: true,
+      expireInSeconds: 300,
+      deleteAfterSeconds: 30 * 24 * 60 * 60,
     },
   },
   // Daily (worker schedule, Africa/Cairo): verified submissions whose card
