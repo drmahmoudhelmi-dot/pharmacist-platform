@@ -190,7 +190,9 @@
     "body": "Staff tools arrive with the admin step. Your access is protected by two-step verification.",
     "rolesLabel": "Your roles",
     "verificationLink": "Verification requests",
-    "jobsLink": "Job moderation"
+    "jobsLink": "Job moderation",
+    "rolesAdminLink": "Staff roles",
+    "auditLink": "Audit log"
   },
   "Roles": {
     "support": "Support",
@@ -962,5 +964,81 @@
     "accepted": "Accepted",
     "rejected": "Rejected",
     "withdrawn": "Withdrawn"
+  },
+  "StaffRoles": {
+    "title": "Staff roles",
+    "intro": "Staff accounts and their roles. Grant a role to an existing account with a verified email, or revoke one.",
+    "signOutNote": "Any change to a person's roles signs them out on every device. They must sign in again.",
+    "selfNote": "This is your account. Nobody changes their own roles, so another super admin must do it.",
+    "grantedAt": "Granted {date}",
+    "grantedUnknown": "Grant date unknown",
+    "grantedBy": "by",
+    "grantedByOperator": "by the operator",
+    "revoke": "Revoke {role}",
+    "revokeConfirm": "Revoke this role from the account? The person will be signed out everywhere.",
+    "confirmRevoke": "Yes, revoke",
+    "cancel": "Cancel",
+    "grantTitle": "Grant a role",
+    "emailLabel": "Account email",
+    "emailHint": "The account must already exist and have a verified email.",
+    "roleLabel": "Role",
+    "rolePlaceholder": "Choose a role",
+    "grant": "Grant role",
+    "granting": "Granting...",
+    "result": {
+      "granted": "The role was granted. The person was signed out everywhere.",
+      "revoked": "The role was revoked. The person was signed out everywhere.",
+      "unchanged": "Nothing changed: the account already had this state."
+    },
+    "staffLink": "Back to the staff area"
+  },
+  "StaffRoleErrors": {
+    "forbidden": "You are not allowed to manage staff roles.",
+    "validation": "Enter a valid email and choose a role.",
+    "userNotFound": "No account has this email.",
+    "emailNotVerified": "This account's email is not verified yet.",
+    "selfChange": "You cannot change your own roles.",
+    "lastSuperAdmin": "At least one super admin must remain. Grant the role to someone else first.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your internet connection and try again."
+  },
+  "StaffAudit": {
+    "title": "Audit log",
+    "intro": "A read-only record of staff actions, newest first. It holds codes and ids, never names or documents.",
+    "filterAction": "Action",
+    "filterTargetType": "Target type",
+    "filterTargetId": "Target id",
+    "filterActorEmail": "Actor email",
+    "any": "All",
+    "apply": "Filter",
+    "empty": "No entries match.",
+    "actor": "Actor",
+    "target": "Target",
+    "ip": "IP address",
+    "next": "Next page",
+    "staffLink": "Back to the staff area"
+  },
+  "AuditActions": {
+    "role_granted": "Role granted",
+    "role_revoked": "Role revoked",
+    "verification_decided": "Verification decided",
+    "job_moderated": "Job moderated",
+    "account_data_exported": "Account data exported"
+  },
+  "AuditActorKinds": {
+    "staff": "Staff member",
+    "user": "Member",
+    "operator": "Operator (command line)",
+    "system": "System"
+  },
+  "AuditTargetTypes": {
+    "user": "Account",
+    "verification_submission": "Verification request",
+    "job": "Job"
+  },
+  "AuditDetailKeys": {
+    "role": "Role",
+    "decision": "Decision",
+    "reasonCode": "Reason code"
   }
 }

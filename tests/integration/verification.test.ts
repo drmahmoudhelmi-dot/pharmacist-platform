@@ -1176,11 +1176,27 @@ describe("decisions", () => {
       (await getProfileForViewer(h.db, viewer, profileRow!.id))?.verified,
     ).toBe(false);
 
-    await decide(deps, rev, id, {
-      decision: "verified",
-      reasonCode: "documents_match",
-    });
+    await decide(
+      deps,
+      rev,
+      id,
+      { decision: "verified", reasonCode: "documents_match" },
+      "198.51.100.7",
+    );
     expect(await getVerificationBadge(h.db, actor.userId)).toBe("verified");
+    // The admin audit log (ADR-008): codes and ids only, never the note.
+    const audit = await h.pool.query(
+      "select actor_id, actor_kind, detail, ip from admin_audit where action = 'verification.decided' and target_id = $1",
+      [id],
+    );
+    expect(audit.rows).toEqual([
+      {
+        actor_id: rev.userId,
+        actor_kind: "staff",
+        detail: { decision: "verified", reasonCode: "documents_match" },
+        ip: "198.51.100.7",
+      },
+    ]);
     expect(
       (await getProfileForViewer(h.db, viewer, profileRow!.id))?.verified,
     ).toBe(true);

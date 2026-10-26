@@ -15,6 +15,7 @@ const STAFF_ACTIONS = [
   "verification.review",
   "billing.access",
   "roles.manage",
+  "audit.read",
 ] as const satisfies readonly Action[];
 
 const ACCOUNT_ACTIONS = [
@@ -31,6 +32,7 @@ const EXPECTED_ROLE: Record<(typeof STAFF_ACTIONS)[number], StaffRole | "any"> =
     "verification.review": "verification_reviewer",
     "billing.access": "billing",
     "roles.manage": "super_admin",
+    "audit.read": "super_admin",
   };
 
 function actor(overrides: Partial<Actor> = {}): Actor {

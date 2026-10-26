@@ -555,8 +555,10 @@ describe("staff policy and TOTP", () => {
     expect(fresh.status).toBe(200);
     expect(fresh.json?.twoFactorRedirect).toBe(true);
     expect(await sessionOf(fresh.jar)).toBeNull();
+    // The code from enrolment is spent (ADR-008); use the next step's code,
+    // which the one-step drift window accepts.
     const second = await h.call("/two-factor/verify-totp", {
-      body: { code: totpFromUri(uri) },
+      body: { code: totpFromUri(uri, Date.now() + 30_000) },
       jar: fresh.jar,
     });
     expect(second.status).toBe(200);

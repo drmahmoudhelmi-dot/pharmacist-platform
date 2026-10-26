@@ -12,6 +12,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { recordAudit } from "@/modules/admin/audit";
 import type { Actor } from "@/modules/identity/policy";
 import {
   getPublicOrganizations,
@@ -1007,6 +1008,7 @@ export async function decideJob(
   moderator: Actor,
   jobId: unknown,
   raw: RawForm,
+  ip: string | null = null,
 ): Promise<DecideResult> {
   if (!can(moderator, "job.reviewQueue")) return fail("forbidden");
   if (!isUuid(jobId)) return fail("notFound");
@@ -1034,6 +1036,16 @@ export async function decideJob(
     if (!can(moderator, "job.review", { actorRole: role, status }))
       return fail("invalidState");
     const { decision, reasonCode, note } = parsed.data;
+    // The admin audit log (ADR-008), in the decision's transaction.
+    await recordAudit(tx, {
+      actorId: moderator.userId,
+      actorKind: "staff",
+      action: "job.moderated",
+      targetType: "job",
+      targetId: row.id,
+      detail: { decision, reasonCode },
+      ip,
+    });
     await tx.insert(jobModerationDecision).values({
       jobId: row.id,
       moderatorId: moderator.userId,

@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { expect, test } from "@playwright/test";
-import { totpFromSecret } from "../tests/integration/helpers/totp";
 import {
   expectNoHorizontalScroll,
+  freshTotp,
   PASSWORD,
   signIn,
   signUpAndVerify,
@@ -119,7 +119,7 @@ test("the staff area is denied to a regular user and opens after TOTP and a role
   await page.getByRole("button", { name: "متابعة" }).click();
   const secret = await page.getByTestId("totp-secret").innerText();
   await expect(page.getByTestId("backup-codes").locator("li")).toHaveCount(10);
-  await page.getByLabel("رمز التحقق").fill(totpFromSecret(secret));
+  await page.getByLabel("رمز التحقق").fill(await freshTotp(secret));
   await page.getByRole("button", { name: "إكمال التفعيل" }).click();
   await expect(page.getByTestId("totp-state")).toHaveText("مفعّل");
 
@@ -138,7 +138,7 @@ test("the staff area is denied to a regular user and opens after TOTP and a role
   await expect(
     page.getByRole("heading", { name: "التحقق بخطوتين" }),
   ).toBeVisible();
-  await page.getByLabel("رمز التحقق").fill(totpFromSecret(secret));
+  await page.getByLabel("رمز التحقق").fill(await freshTotp(secret));
   await page.getByRole("button", { name: "تحقق" }).click();
   await expect(page).toHaveURL(/\/account$/);
 

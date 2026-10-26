@@ -1,3 +1,4 @@
+import { recordAudit } from "@/modules/admin/audit";
 import { can as canAccount, getActor } from "@/modules/identity/policy";
 import { exportOwnApplications } from "@/modules/jobs/applications";
 import { exportOwnData } from "@/modules/profiles/service";
@@ -6,7 +7,7 @@ import { logger } from "@/shared/logging/logger";
 
 // "Download my data" (ADR-003, data rights): the caller's own account and
 // profile data as a JSON attachment. Never cached; ids only in the log.
-export async function GET() {
+export async function GET(request: Request) {
   const actor = await getActor();
   if (!actor) {
     return Response.json({ error: "unauthenticated" }, { status: 401 });
@@ -25,7 +26,16 @@ export async function GET() {
   if (!data) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
-  // Until the audit log exists (step 7), the export is recorded in the log.
+  // On record in the admin audit log (ADR-008): who exported which account.
+  await recordAudit(getDb(), {
+    actorId: actor.userId,
+    actorKind: "user",
+    action: "account.data_exported",
+    targetType: "user",
+    targetId: actor.userId,
+    detail: {},
+    ip: request.headers.get("x-forwarded-for"),
+  });
   logger.info({ event: "account.data_exported", userId: actor.userId });
   const date = now.toISOString().slice(0, 10);
   return new Response(JSON.stringify(data, null, 2), {

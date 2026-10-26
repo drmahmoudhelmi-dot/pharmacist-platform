@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { totpFromSecret } from "../tests/integration/helpers/totp";
 import { latestLinkTo } from "./mailpit";
 
 // Shared journey steps for the E2E specs (Arabic UI, the default locale).
@@ -47,4 +48,23 @@ export async function signIn(page: Page, email: string) {
   await page.getByLabel("البريد الإلكتروني").fill(email);
   await page.getByLabel("كلمة المرور").fill(PASSWORD);
   await page.getByRole("button", { name: "تسجيل الدخول" }).click();
+}
+
+const lastCode = new Map<string, string>();
+
+/**
+ * A TOTP code that was not used before for this secret. The server refuses a
+ * code it already accepted (replay protection, ADR-008), so when the current
+ * step's code was used, wait for the next 30-second step.
+ */
+export async function freshTotp(secret: string): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const code = totpFromSecret(secret);
+    if (lastCode.get(secret) !== code) {
+      lastCode.set(secret, code);
+      return code;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error("no fresh TOTP code");
 }

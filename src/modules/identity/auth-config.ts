@@ -1,9 +1,11 @@
+import { createHmac } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { haveIBeenPwned } from "better-auth/plugins/haveibeenpwned";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
 import type { EmailSender } from "@/shared/email/sender";
@@ -31,6 +33,50 @@ export const DISABLED_AUTH_PATHS = [
 ];
 
 // 2FA checks that create an MFA-verified session (see session hook below).
+type AuthDb = NodePgDatabase;
+
+const TOTP_PATH = "/two-factor/verify-totp";
+
+/**
+ * TOTP replay protection (ADR-008): a code accepted once cannot be accepted
+ * again within 90 seconds (its 30-second step plus the accepted drift).
+ * Claimed atomically before Better Auth checks the code, so two concurrent
+ * requests with the same code cannot both pass. The key is a keyed hash of
+ * the code alone (the pending two-factor sign-in carries no user id in the
+ * request); see the ADR for the collision trade-off.
+ */
+const TOTP_REPLAY_WINDOW_SECONDS = 90;
+
+function totpKey(secret: string, code: string) {
+  return `totp|${createHmac("sha256", secret).update(`totp-replay\u0000${code}`).digest("base64url")}`;
+}
+
+async function claimTotpCode(
+  deps: { db: AuthDb; secret: string; rateLimitEnabled?: boolean },
+  code: unknown,
+) {
+  if (typeof code !== "string" || !/^\d{6}$/.test(code)) return;
+  const quota = await consumeQuota(deps.db, totpKey(deps.secret, code), {
+    window: TOTP_REPLAY_WINDOW_SECONDS,
+    max: 1,
+  });
+  if (!quota.allowed)
+    throw new APIError("UNAUTHORIZED", {
+      code: "INVALID_CODE",
+      message: "Invalid code",
+    });
+}
+
+async function releaseTotpCode(
+  deps: { db: AuthDb; secret: string },
+  code: unknown,
+) {
+  if (typeof code !== "string" || !/^\d{6}$/.test(code)) return;
+  await deps.db.execute(
+    sql`delete from rate_limit where key = ${totpKey(deps.secret, code)}`,
+  );
+}
+
 const MFA_SESSION_PATHS = new Set([
   "/two-factor/verify-totp",
   "/two-factor/verify-backup-code",
@@ -167,6 +213,10 @@ export function createAuth(deps: AuthDeps) {
     },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === TOTP_PATH) {
+          await claimTotpCode(deps, ctx.body?.code);
+          return;
+        }
         const rule = EMAIL_QUOTAS[ctx.path];
         if (!rule || deps.rateLimitEnabled === false) return;
         const email: unknown = ctx.body?.email;
@@ -183,6 +233,14 @@ export function createAuth(deps: AuthDeps) {
             { "X-Retry-After": String(quota.retryAfter) },
           );
         }
+      }),
+      // A rejected TOTP attempt frees its claim, so a mistyped or expired
+      // request can be retried with the same code; an accepted one keeps it.
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== TOTP_PATH) return;
+        // Any API error, including better-call's body validation errors.
+        if (isAPIError(ctx.context.returned))
+          await releaseTotpCode(deps, ctx.body?.code);
       }),
     },
     databaseHooks: {

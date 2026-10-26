@@ -31,6 +31,8 @@ const STAFF_ACTION_ROLES = {
   // Separation of duties: super_admin manages roles; it is not a superset of
   // the other duties. A person with several duties holds several roles.
   "roles.manage": ["super_admin"],
+  // Read the admin audit log (ADR-008).
+  "audit.read": ["super_admin"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 type StaffAction = keyof typeof STAFF_ACTION_ROLES;
