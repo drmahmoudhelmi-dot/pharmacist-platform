@@ -179,7 +179,7 @@ async function countOwners(tx: Tx, organizationId: string) {
   return row?.n ?? 0;
 }
 
-async function governorateExists(db: Db, id: number) {
+async function governorateExists(db: Pick<Db, "select">, id: number) {
   return (await listGovernorates(db)).some((g) => g.id === id);
 }
 
@@ -445,7 +445,7 @@ export async function updateOrganization(
         error: "validation" as const,
         fieldErrors: parsed.fieldErrors,
       };
-    if (!(await governorateExists(deps.db, parsed.data.governorateId)))
+    if (!(await governorateExists(tx, parsed.data.governorateId)))
       return {
         ok: false as const,
         error: "validation" as const,

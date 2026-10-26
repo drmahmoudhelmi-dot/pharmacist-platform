@@ -39,6 +39,11 @@ describe("database migrations", () => {
       dead_letter: string | null;
     }>("select name, dead_letter from pgboss.queue order by name");
     expect(queues.rows).toEqual([
+      {
+        name: "applications.notify",
+        dead_letter: "applications.notify.dead",
+      },
+      { name: "applications.notify.dead", dead_letter: null },
       { name: "jobs.expire", dead_letter: null },
       { name: "jobs.notify", dead_letter: "jobs.notify.dead" },
       { name: "jobs.notify.dead", dead_letter: null },
@@ -57,7 +62,7 @@ describe("database migrations", () => {
     const queues = await pool.query(
       "select count(*)::int as n from pgboss.queue",
     );
-    expect(queues.rows[0]?.n).toBe(10);
+    expect(queues.rows[0]?.n).toBe(12);
   });
 
   it("runs queries against PostgreSQL 18", async () => {

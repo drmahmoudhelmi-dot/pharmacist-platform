@@ -482,3 +482,62 @@ export async function exportOwnData(
     organizations: orgs,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Sharing with an employer (ADR-007)
+
+export type ApplicationShare = {
+  snapshot: {
+    displayName: string;
+    headline: string | null;
+    bio: string | null;
+    careerStage: CareerStage;
+    yearsExperience: number;
+    governorate: Omit<Governorate, "id"> | null;
+    specialties: Specialty[];
+    experience: Omit<ExperienceItem, "id">[];
+  };
+  /** The private phone, for the applicant to opt in to sharing; null if none. */
+  phoneE164: string | null;
+};
+
+/**
+ * What the caller may share when applying for a job: their public profile
+ * fields (whatever its visibility; applying is the owner's own choice to
+ * share) and their phone. Null when they have no profile yet.
+ */
+export async function getOwnApplicationShare(
+  db: Db,
+  actor: Actor,
+): Promise<ApplicationShare | null> {
+  const own = await getOwnProfile(db, actor);
+  if (!own) return null;
+  const [items, details, governorates] = await Promise.all([
+    listOwnExperience(db, actor),
+    getOwnProfessionalDetails(db, actor),
+    listGovernorates(db),
+  ]);
+  const g = governorates.find((x) => x.id === own.governorateId);
+  return {
+    snapshot: {
+      displayName: own.displayName,
+      headline: own.headline,
+      bio: own.bio,
+      careerStage: own.careerStage,
+      yearsExperience: own.yearsExperience,
+      governorate: g
+        ? { code: g.code, nameAr: g.nameAr, nameEn: g.nameEn }
+        : null,
+      specialties: own.specialties,
+      experience: items.map(
+        ({ title, employerName, startMonth, endMonth }) => ({
+          title,
+          employerName,
+          startMonth,
+          endMonth,
+        }),
+      ),
+    },
+    phoneE164: details?.phoneE164 ?? null,
+  };
+}

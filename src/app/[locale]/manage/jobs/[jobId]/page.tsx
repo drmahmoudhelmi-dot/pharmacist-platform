@@ -1,8 +1,9 @@
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/modules/identity/policy";
+import { countJobApplications } from "@/modules/jobs/applications";
 import { getJobForMember } from "@/modules/jobs/service";
-import { dateTimeFormat } from "@/modules/jobs/ui/format";
+import { dateTimeFormat, formatCount } from "@/modules/jobs/ui/format";
 import { JobActions } from "@/modules/jobs/ui/job-actions";
 import { JobDetails } from "@/modules/jobs/ui/job-details";
 import { JobForm } from "@/modules/jobs/ui/job-form";
@@ -29,6 +30,7 @@ export default async function ManageJobPage({ params }: Props) {
   const db = getDb();
   const job = await getJobForMember(db, actor, jobId);
   if (!job) notFound();
+  const applicationCount = (await countJobApplications(db, actor, job.id)) ?? 0;
   const governorates = job.permissions.edit ? await listGovernorates(db) : [];
   const t = await getTranslations("Jobs");
   const tr = await getTranslations("JobRejectReasons");
@@ -67,6 +69,15 @@ export default async function ManageJobPage({ params }: Props) {
           </Link>
         ) : null}
       </section>
+      <Link
+        href={`/manage/jobs/${job.id}/applications`}
+        className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+        data-testid="job-applications-link"
+      >
+        {t("applicationsLink", {
+          count: formatCount(applicationCount, locale),
+        })}
+      </Link>
       {job.rejection ? (
         <section
           aria-labelledby="rejection-heading"

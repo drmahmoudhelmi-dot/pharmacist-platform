@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Actor } from "@/modules/identity/policy";
-import { JOB_STATUSES, type JobStatus } from "./constants";
-import { can, type JobAction } from "./policy";
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_TRANSITIONS,
+  JOB_STATUSES,
+  type JobStatus,
+} from "./constants";
+import { can, canApplication, type JobAction } from "./policy";
 
 function actor(overrides: Partial<Actor> = {}): Actor {
   return {
@@ -99,6 +104,86 @@ describe("jobs policy: moderators", () => {
     for (const actorRole of ["owner", "recruiter"] as const)
       expect(
         can(moderator, "job.review", { actorRole, status: "pending_review" }),
+      ).toBe(false);
+  });
+});
+
+describe("applications policy (ADR-007)", () => {
+  const me = actor({ userId: "applicant-1" });
+
+  it("lets anyone outside the organization apply, never members", () => {
+    expect(canApplication(me, "application.apply", {})).toBe(true);
+    expect(canApplication(me, "application.apply", { actorRole: null })).toBe(
+      true,
+    );
+    for (const actorRole of ["owner", "recruiter"] as const)
+      expect(canApplication(me, "application.apply", { actorRole })).toBe(
+        false,
+      );
+    expect(
+      canApplication(actor({ emailVerified: false }), "application.apply", {}),
+    ).toBe(false);
+  });
+
+  it("lets only the applicant read and withdraw, before a final decision", () => {
+    expect(
+      canApplication(me, "application.readOwn", { applicantId: "applicant-1" }),
+    ).toBe(true);
+    expect(
+      canApplication(me, "application.readOwn", { applicantId: "someone" }),
+    ).toBe(false);
+    for (const status of APPLICATION_STATUSES)
+      expect(
+        canApplication(me, "application.withdraw", {
+          applicantId: "applicant-1",
+          status,
+        }),
+        status,
+      ).toBe(["submitted", "under_review", "shortlisted"].includes(status));
+    expect(
+      canApplication(me, "application.withdraw", {
+        applicantId: "someone",
+        status: "submitted",
+      }),
+    ).toBe(false);
+  });
+
+  it("lets the job's organization move applications only along the table, never withdraw", () => {
+    for (const actorRole of ["owner", "recruiter"] as const) {
+      expect(canApplication(me, "application.read", { actorRole })).toBe(true);
+      for (const status of APPLICATION_STATUSES)
+        for (const to of APPLICATION_STATUSES)
+          expect(
+            canApplication(me, "application.move", {
+              actorRole,
+              applicantId: "applicant-2",
+              status,
+              to,
+            }),
+            `${status} -> ${to}`,
+          ).toBe(
+            to !== "withdrawn" && APPLICATION_TRANSITIONS[status].includes(to),
+          );
+    }
+    expect(canApplication(me, "application.read", {})).toBe(false);
+    expect(
+      canApplication(me, "application.move", {
+        status: "submitted",
+        to: "under_review",
+      }),
+    ).toBe(false);
+    expect(
+      canApplication(moderator, "application.read", { actorRole: null }),
+    ).toBe(false);
+    // Never on one's own application, and the applicant must be known.
+    for (const applicantId of ["applicant-1", undefined])
+      expect(
+        canApplication(me, "application.move", {
+          actorRole: "owner",
+          applicantId,
+          status: "submitted",
+          to: "under_review",
+        }),
       ).toBe(false);
   });
 });

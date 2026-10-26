@@ -1,4 +1,5 @@
 import { can as canAccount, getActor } from "@/modules/identity/policy";
+import { exportOwnApplications } from "@/modules/jobs/applications";
 import { exportOwnData } from "@/modules/profiles/service";
 import { getDb } from "@/shared/db/client";
 import { logger } from "@/shared/logging/logger";
@@ -14,7 +15,13 @@ export async function GET() {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   const now = new Date();
-  const data = await exportOwnData(getDb(), actor, now);
+  const [profileData, applications] = await Promise.all([
+    exportOwnData(getDb(), actor, now),
+    // Applications live in the jobs module, which depends on profiles; so
+    // they join the export here rather than inside profiles' export.
+    exportOwnApplications(getDb(), actor),
+  ]);
+  const data = profileData ? { ...profileData, applications } : null;
   if (!data) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }

@@ -1,7 +1,10 @@
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { getActor } from "@/modules/identity/policy";
+import { getApplyState } from "@/modules/jobs/applications";
 import { getPublicJob } from "@/modules/jobs/service";
 import { dateTimeFormat } from "@/modules/jobs/ui/format";
+import { ApplySection } from "@/modules/jobs/ui/apply-section";
 import { JobDetails } from "@/modules/jobs/ui/job-details";
 import { getDb } from "@/shared/db/client";
 import { isLocale } from "@/shared/i18n/routing";
@@ -21,6 +24,7 @@ export default async function JobPage({ params }: Props) {
   const t = await getTranslations("Jobs");
   const tc = await getTranslations("Common");
   const format = dateTimeFormat(await getLocale());
+  const applyState = await getApplyState(getDb(), await getActor(), job.id);
 
   return (
     <PageShell title={job.title} homeLabel={tc("home")}>
@@ -31,6 +35,7 @@ export default async function JobPage({ params }: Props) {
         posterVerified={job.posterVerified}
         publishedLabel={format.format(new Date(job.publishedAt))}
       />
+      <ApplySection jobId={job.id} state={applyState} />
       <TextLink href="/jobs">{t("backToBoard")}</TextLink>
     </PageShell>
   );

@@ -64,6 +64,13 @@
       "when": 1793025517128,
       "tag": "0008_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793030034239,
+      "tag": "0009_applications",
+      "breakpoints": true
     }
   ]
 }

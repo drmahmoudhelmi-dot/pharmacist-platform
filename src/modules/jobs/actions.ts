@@ -5,6 +5,13 @@ import { getDb } from "@/shared/db/client";
 import { getJobClient } from "@/shared/jobs/client";
 import { logger } from "@/shared/logging/logger";
 import {
+  type ApplicationResult,
+  type ApplicationsDeps,
+  applyToJob,
+  moveApplication,
+  withdrawApplication,
+} from "./applications";
+import {
   closeJob,
   copyJob,
   createJob,
@@ -18,6 +25,7 @@ import {
   type WriteResult,
 } from "./service";
 import {
+  type ApplicationField,
   type DecisionField,
   formDataToRaw,
   isUuid,
@@ -68,6 +76,48 @@ async function run<K extends string, T>(
         errName: error instanceof Error ? error.name : undefined,
       },
       "job write failed",
+    );
+    return { ok: false, error: "generic" };
+  }
+}
+
+export type ApplicationActionResult<K extends string = never, T = object> =
+  ApplicationResult<K, T> | { ok: false; error: "generic" };
+
+async function applicationDeps(): Promise<ApplicationsDeps> {
+  return { db: getDb(), boss: await getJobClient() };
+}
+
+async function runApplication<K extends string, T>(
+  name: string,
+  ids: { userId: string; jobId?: unknown; applicationId?: unknown },
+  work: () => Promise<ApplicationResult<K, T>>,
+): Promise<ApplicationActionResult<K, T>> {
+  // Client-supplied: logged only when it is a well-formed id.
+  const jobId = isUuid(ids.jobId) ? ids.jobId : undefined;
+  const applicationId = isUuid(ids.applicationId)
+    ? ids.applicationId
+    : undefined;
+  try {
+    const result = await work();
+    if (result.ok)
+      log.info({
+        event: `applications.${name}`,
+        userId: ids.userId,
+        jobId,
+        applicationId,
+      });
+    return result;
+  } catch (error) {
+    log.error(
+      {
+        event: `applications.${name}.failed`,
+        userId: ids.userId,
+        jobId,
+        applicationId,
+        errName: error instanceof Error ? error.name : undefined,
+      },
+      "application write failed",
     );
     return { ok: false, error: "generic" };
   }
@@ -153,5 +203,42 @@ export async function decideJobAction(
   const actor = await requireActor();
   return run("decided", { userId: actor.userId, jobId }, async () =>
     decideJob(await deps(), actor, jobId, formDataToRaw(form)),
+  );
+}
+
+export async function applyToJobAction(
+  jobId: string,
+  form: FormData,
+): Promise<
+  ApplicationActionResult<ApplicationField, { applicationId: string }>
+> {
+  const actor = await requireActor();
+  return runApplication("applied", { userId: actor.userId, jobId }, async () =>
+    applyToJob(await applicationDeps(), actor, jobId, formDataToRaw(form)),
+  );
+}
+
+export async function withdrawApplicationAction(
+  applicationId: string,
+): Promise<ApplicationActionResult> {
+  const actor = await requireActor();
+  return runApplication(
+    "withdrawn",
+    { userId: actor.userId, applicationId },
+    async () =>
+      withdrawApplication(await applicationDeps(), actor, applicationId),
+  );
+}
+
+export async function moveApplicationAction(
+  applicationId: string,
+  to: string,
+): Promise<ApplicationActionResult> {
+  const actor = await requireActor();
+  return runApplication(
+    "moved",
+    { userId: actor.userId, applicationId },
+    async () =>
+      moveApplication(await applicationDeps(), actor, applicationId, to),
   );
 }
