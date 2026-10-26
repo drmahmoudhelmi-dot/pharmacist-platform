@@ -4,16 +4,21 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   smallint,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "@/modules/identity/schema";
 import { organization } from "@/modules/organizations/schema";
 import { governorate } from "@/modules/profiles/schema";
+import type { ApplicationSnapshot } from "./application-snapshot";
 import {
+  APPLICATION_LIMITS,
+  APPLICATION_STATUSES,
   CAREER_STAGES,
   EMPLOYMENT_TYPES,
   JOB_CATEGORIES,
@@ -232,6 +237,111 @@ export const jobEvent = pgTable(
       "job_event_status_check",
       sql.raw(
         `to_status in (${sqlList(JOB_STATUSES)}) and (from_status is null or from_status in (${sqlList(JOB_STATUSES)}))`,
+      ),
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Applications (ADR-007). The snapshot, phone and note are what the applicant
+// shared with this employer at apply time; the trigger in migration 0009
+// keeps them, the job and the applicant immutable and enforces the status
+// transitions. `application_event` is append-only.
+
+export const jobApplication = pgTable(
+  "job_application",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    // RESTRICT: a job that ever had applications is never deleted (only
+    // never-submitted drafts are, and those cannot be applied to).
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => job.id, { onDelete: "restrict" }),
+    applicantId: uuid("applicant_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status", { enum: APPLICATION_STATUSES })
+      .default("submitted")
+      .notNull(),
+    profileSnapshot: jsonb("profile_snapshot")
+      .$type<ApplicationSnapshot>()
+      .notNull(),
+    // Only when the applicant chose to share it with this employer.
+    phoneE164: text("phone_e164"),
+    coverNote: text("cover_note"),
+    submittedAt: timestamptz("submitted_at").defaultNow().notNull(),
+    decidedAt: timestamptz("decided_at"),
+    withdrawnAt: timestamptz("withdrawn_at"),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
+    updatedAt: timestamptz("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique("job_application_job_applicant_key").on(
+      table.jobId,
+      table.applicantId,
+    ),
+    index("job_application_applicant_idx").on(
+      table.applicantId,
+      table.submittedAt,
+    ),
+    index("job_application_job_idx").on(table.jobId, table.submittedAt),
+    check(
+      "job_application_status_check",
+      sql.raw(`status in (${sqlList(APPLICATION_STATUSES)})`),
+    ),
+    check(
+      "job_application_phone_check",
+      sql.raw(`phone_e164 ~ '^\\+201[0125][0-9]{8}$'`),
+    ),
+    check(
+      "job_application_cover_note_check",
+      sql.raw(
+        `char_length(cover_note) between 1 and ${APPLICATION_LIMITS.coverNote.max}`,
+      ),
+    ),
+    check(
+      "job_application_snapshot_check",
+      sql.raw(`jsonb_typeof(profile_snapshot) = 'object'`),
+    ),
+    check(
+      "job_application_state_check",
+      sql.raw(
+        `((status in ('accepted', 'rejected')) = (decided_at is not null)) and ((status = 'withdrawn') = (withdrawn_at is not null))`,
+      ),
+    ),
+  ],
+);
+
+export const applicationEvent = pgTable(
+  "application_event",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => jobApplication.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    fromStatus: text("from_status", { enum: APPLICATION_STATUSES }),
+    toStatus: text("to_status", { enum: APPLICATION_STATUSES }).notNull(),
+    at: timestamptz("at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("application_event_application_idx").on(
+      table.applicationId,
+      table.at,
+    ),
+    check(
+      "application_event_status_check",
+      sql.raw(
+        `to_status in (${sqlList(APPLICATION_STATUSES)}) and (from_status is null or from_status in (${sqlList(APPLICATION_STATUSES)}))`,
       ),
     ),
   ],

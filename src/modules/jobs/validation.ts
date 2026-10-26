@@ -2,6 +2,7 @@ import { cairoToday } from "@/modules/verification/national-id";
 import { toWesternDigits } from "@/shared/text/digits";
 import { normalizeName } from "@/shared/text/name";
 import {
+  APPLICATION_LIMITS,
   CAREER_STAGES,
   type CareerStage,
   type EmploymentType,
@@ -315,3 +316,28 @@ export function parseSearch(
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isUuid = (value: unknown): value is string =>
   typeof value === "string" && UUID.test(value);
+
+// ---------------------------------------------------------------------------
+// Application form (ADR-007)
+
+export type ApplicationInput = {
+  coverNote: string | null;
+  sharePhone: boolean;
+};
+export type ApplicationField = "coverNote";
+
+export function parseApplication(
+  raw: RawForm,
+): Parsed<ApplicationInput, ApplicationField> {
+  const coverNote = paragraph(raw.coverNote);
+  if (charLength(coverNote) > APPLICATION_LIMITS.coverNote.max)
+    return { ok: false, fieldErrors: { coverNote: "tooLong" } };
+  const share = raw.sharePhone;
+  return {
+    ok: true,
+    data: {
+      coverNote: coverNote === "" ? null : coverNote,
+      sharePhone: share === "on" || share === "true" || share === true,
+    },
+  };
+}

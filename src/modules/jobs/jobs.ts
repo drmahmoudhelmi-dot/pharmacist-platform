@@ -9,11 +9,12 @@ import { enqueue, type PgBoss } from "@/shared/jobs/boss";
 import ar from "../../../messages/ar.json";
 import en from "../../../messages/en.json";
 import {
+  type ApplicationNoticeKind,
   type EmailLocale,
   isRejectReason,
   type JobNotificationKind,
 } from "./constants";
-import { job, jobEvent, jobModerationDecision } from "./schema";
+import { job, jobApplication, jobEvent, jobModerationDecision } from "./schema";
 
 // The worker side of jobs (ADR-006): the daily `jobs.expire` pass and the
 // `jobs.notify` emails to a job's creator. Runs in `pnpm worker`, not in the
@@ -187,4 +188,60 @@ export async function expireJobs(
   }
   deps.logger.info({ event: "jobs.expired", count: total });
   return total;
+}
+
+/**
+ * Emails the applicant that their application was shortlisted, accepted or
+ * rejected (ADR-007). Skips when the application is gone, its status no
+ * longer matches, or the applicant's verified address is gone. No employer
+ * notes exist to leak; the email names the job and the organization's
+ * status change only.
+ */
+export async function sendApplicationNotice(
+  deps: JobNoticeDeps,
+  applicationId: string,
+  kind: ApplicationNoticeKind,
+): Promise<"sent" | "skipped"> {
+  const [row] = await deps.db
+    .select({
+      applicantId: jobApplication.applicantId,
+      status: jobApplication.status,
+      title: job.title,
+    })
+    .from(jobApplication)
+    .innerJoin(job, eq(job.id, jobApplication.jobId))
+    .where(eq(jobApplication.id, applicationId))
+    .limit(1);
+  const skip = (reason: string) => {
+    deps.logger.info({
+      event: "applications.notice_skipped",
+      applicationId,
+      kind,
+      reason,
+    });
+    return "skipped" as const;
+  };
+  if (!row) return skip("application_missing");
+  if (row.status !== kind) return skip("state_mismatch");
+  const to = await getNotificationAddress(deps.db, row.applicantId);
+  if (!to) return skip("no_address");
+  const catalog = catalogs.ar;
+  const strings = catalog.ApplicationEmail[kind];
+  await deps.emailSender.send(
+    renderEmail(
+      {
+        subject: fill(strings.subject, { title: row.title }),
+        heading: strings.heading,
+        paragraphs: [fill(strings.body, { title: row.title })],
+        action: {
+          label: catalog.ApplicationEmail.action,
+          url: `${deps.appUrl}/applications`,
+        },
+        note: catalog.ApplicationEmail.note,
+      },
+      { to, locale: "ar" },
+    ),
+  );
+  deps.logger.info({ event: "applications.notice_sent", applicationId, kind });
+  return "sent";
 }

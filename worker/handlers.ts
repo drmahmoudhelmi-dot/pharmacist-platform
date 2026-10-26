@@ -1,6 +1,10 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
-import { expireJobs, sendJobNotice } from "@/modules/jobs/jobs";
+import {
+  expireJobs,
+  sendApplicationNotice,
+  sendJobNotice,
+} from "@/modules/jobs/jobs";
 import { sendInvitationNotice } from "@/modules/organizations/jobs";
 import { failUpload, processUpload } from "@/modules/uploads/processing";
 import {
@@ -87,6 +91,20 @@ export const HANDLERS: Record<JobName, Handler> = {
         invitationId: payload.invitationId,
       });
   },
+  "applications.notify": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "applications.notify", data, jobId);
+    if (payload)
+      await sendApplicationNotice(deps, payload.applicationId, payload.kind);
+  },
+  "applications.notify.dead": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "applications.notify.dead", data, jobId);
+    if (payload)
+      deps.logger.error({
+        event: "applications.notice_failed",
+        applicationId: payload.applicationId,
+        kind: payload.kind,
+      });
+  },
   "jobs.notify": async (deps, data, jobId) => {
     const payload = payloadOf(deps, "jobs.notify", data, jobId);
     if (payload) await sendJobNotice(deps, payload.jobId, payload.kind);
@@ -132,6 +150,8 @@ const CONCURRENCY: Record<JobName, number> = {
   "verification.expire": 1,
   "organization.notify": 2,
   "organization.notify.dead": 1,
+  "applications.notify": 2,
+  "applications.notify.dead": 1,
   "jobs.notify": 2,
   "jobs.notify.dead": 1,
   "jobs.expire": 1,

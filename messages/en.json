@@ -8,7 +8,8 @@
     "myProfile": "My profile",
     "myAccount": "My account",
     "myOrganizations": "My organizations",
-    "jobs": "Jobs"
+    "jobs": "Jobs",
+    "myApplications": "My applications"
   },
   "Meta": {
     "title": "Pharmacist Platform",
@@ -179,7 +180,10 @@
     "verificationLink": "Verify my account",
     "organizationsHeading": "Organizations",
     "organizationsExplain": "Your pharmacy or chain, its members and invitations.",
-    "organizationsLink": "My organizations"
+    "organizationsLink": "My organizations",
+    "applicationsHeading": "My applications",
+    "applicationsExplain": "The jobs you applied to and where each application stands.",
+    "applicationsLink": "View my applications"
   },
   "Staff": {
     "title": "Staff area",
@@ -771,7 +775,8 @@
     "stagesLabel": "Career stages",
     "salaryLabel": "Pay",
     "publishedLabel": "Published",
-    "backToBoard": "All jobs"
+    "backToBoard": "All jobs",
+    "applicationsLink": "Applications ({count})"
   },
   "JobErrors": {
     "required": "This field is required.",
@@ -848,5 +853,112 @@
     },
     "queueLink": "Back to the review queue",
     "working": "Working…"
+  },
+  "ApplicationEmail": {
+    "action": "View my applications",
+    "note": "This message is about an application you made on the Pharmacist Platform.",
+    "shortlisted": {
+      "subject": "You are shortlisted for “{title}”",
+      "heading": "You are shortlisted",
+      "body": "The employer added your application for “{title}” to the shortlist. They may contact you soon."
+    },
+    "accepted": {
+      "subject": "Your application for “{title}” was accepted",
+      "heading": "Application accepted",
+      "body": "The employer accepted your application for “{title}” and will contact you about next steps."
+    },
+    "rejected": {
+      "subject": "Update on your application for “{title}”",
+      "heading": "Application not selected",
+      "body": "The employer decided not to continue with your application for “{title}”. We wish you luck with other opportunities on the platform."
+    }
+  },
+  "Applications": {
+    "title": "My applications",
+    "intro": "The jobs you applied to and where each application stands. You get an email when you are shortlisted, accepted or not selected.",
+    "empty": "You have not applied to any job yet.",
+    "browseJobs": "Browse jobs",
+    "submittedOn": "Applied {date}",
+    "viewJob": "View the job",
+    "jobNoLongerLive": "This job is no longer published.",
+    "withdraw": "Withdraw application",
+    "withdrawConfirm": "Withdraw your application? The employer will no longer see it, and you cannot apply to this job again.",
+    "confirmWithdraw": "Yes, withdraw",
+    "cancel": "Cancel",
+    "withdrawn": "Your application was withdrawn.",
+    "applyHeading": "Apply for this job",
+    "signedOut": "Sign in with your confirmed account to apply for this job.",
+    "signInLink": "Sign in",
+    "noProfile": "Your professional profile is what the employer sees when you apply, so create it first and then come back.",
+    "profileLink": "Create my profile",
+    "ownOrganization": "This job belongs to an organization you are a member of, so you cannot apply to it.",
+    "closed": "Applications for this job are not open right now.",
+    "alreadyApplied": "You have already applied to this job.",
+    "viewMyApplications": "View my applications",
+    "shareHeading": "What does the employer see?",
+    "shareProfile": "Your public profile as it is now: name, headline, career stage, years of experience, governorate, specialties and experience. Later edits to your profile are not shown to them.",
+    "sharePhoneRule": "Your phone number, only if you choose to share it below.",
+    "shareNever": "Your email address is never shown to them.",
+    "coverNoteLabel": "A short note to the employer (optional)",
+    "coverNoteHint": "Up to {max} characters. Do not include sensitive details.",
+    "sharePhoneLabel": "Share my phone number with this employer",
+    "noPhoneHint": "If you want the employer to call you, add your phone number in the private details of <link>your profile</link>, then come back here.",
+    "submit": "Submit application",
+    "submitting": "Submitting…",
+    "applied": "Your application was submitted.",
+    "employerTitle": "Applications",
+    "employerIntro": "People who applied to this job, oldest first.",
+    "employerEmpty": "No one has applied to this job yet.",
+    "backToJob": "Back to the job",
+    "applicationTitle": "Application",
+    "movesHeading": "Decision",
+    "noMoves": "There are no further actions for this application.",
+    "moveActions": {
+      "under_review": "Start review",
+      "shortlisted": "Add to shortlist",
+      "accepted": "Accept",
+      "rejected": "Reject"
+    },
+    "moveConfirm": {
+      "accepted": "The application will be accepted and the applicant emailed. This cannot be undone.",
+      "rejected": "The application will be rejected and the applicant emailed. This cannot be undone."
+    },
+    "confirmMove": {
+      "accepted": "Confirm acceptance",
+      "rejected": "Confirm rejection"
+    },
+    "moved": {
+      "under_review": "The application is under review.",
+      "shortlisted": "The application was added to the shortlist.",
+      "accepted": "The application was accepted.",
+      "rejected": "The application was rejected."
+    },
+    "snapshotNote": "This is what the applicant shared when applying; it may differ from their current profile.",
+    "contactHeading": "Contact",
+    "noPhoneShared": "The applicant did not share a phone number.",
+    "coverNoteHeading": "Applicant's note",
+    "noCoverNote": "The applicant did not write a note.",
+    "backToApplications": "All applications"
+  },
+  "ApplicationErrors": {
+    "forbidden": "You do not have permission for this action. Make sure your email is confirmed and that you are not a member of the job's organization.",
+    "validation": "Check the highlighted fields and try again.",
+    "notFound": "We could not find this item; it may have changed or been removed. Refresh the page.",
+    "invalidState": "This action is not possible in the application's current state. Refresh the page.",
+    "limitReached": "You have reached the daily limit of 30 applications. Try again tomorrow.",
+    "noProfile": "Create your professional profile first, then apply.",
+    "alreadyApplied": "You have already applied to this job.",
+    "jobClosed": "Applications for this job have closed.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your internet connection and try again.",
+    "tooLong": "The note is longer than allowed."
+  },
+  "ApplicationStatuses": {
+    "submitted": "Submitted",
+    "under_review": "Under review",
+    "shortlisted": "Shortlisted",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "withdrawn": "Withdrawn"
   }
 }

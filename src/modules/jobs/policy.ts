@@ -1,7 +1,15 @@
 import { type Actor, can as canIdentity } from "@/modules/identity/policy";
 import type { MemberRole } from "@/modules/organizations/constants";
 import { can as canOrganization } from "@/modules/organizations/policy";
-import { EDITABLE, isJobStatus, type JobStatus } from "./constants";
+import {
+  type ApplicationStatus,
+  canMoveApplication,
+  EDITABLE,
+  isApplicationStatus,
+  isJobStatus,
+  type JobStatus,
+  WITHDRAWABLE,
+} from "./constants";
 
 // Authorization for the jobs module (ADR-006). An employer action needs the
 // actor's role in the job's organization (loaded by the service from the
@@ -73,4 +81,67 @@ export function can(
   if (name === "job.read" || name === "job.copy") return true;
   const allowed = NEEDS[name];
   return allowed !== undefined && allowed.includes(resource.status);
+}
+
+// ---------------------------------------------------------------------------
+// Applications (ADR-007)
+
+export type ApplicationAction =
+  // A signed-in user applies to a live job of an organization they are not in.
+  | "application.apply"
+  // The applicant reads or withdraws their own application.
+  | "application.readOwn"
+  | "application.withdraw"
+  // The job's organization (owner or recruiter).
+  | "application.read"
+  | "application.move";
+
+export type ApplicationResource = {
+  /** The actor's role in the job's organization; absent = not a member. */
+  actorRole?: MemberRole | null;
+  /** The applicant's user id, for the applicant's own actions. */
+  applicantId?: string;
+  status?: ApplicationStatus;
+  /** The target status of `application.move`. */
+  to?: ApplicationStatus;
+};
+
+/** Fails closed like `can` above. */
+export function canApplication(
+  actor: Actor | null | undefined,
+  action: ApplicationAction,
+  resource?: ApplicationResource,
+): boolean {
+  if (!actor || !actor.emailVerified) return false;
+  const name: string = action;
+  switch (name) {
+    case "application.apply":
+      // Nobody applies to their own organization's jobs.
+      return resource?.actorRole == null;
+    case "application.readOwn":
+      return resource?.applicantId === actor.userId;
+    case "application.withdraw":
+      return (
+        resource?.applicantId === actor.userId &&
+        isApplicationStatus(resource.status) &&
+        WITHDRAWABLE.includes(resource.status)
+      );
+    case "application.read":
+      return canOrganization(actor, "jobs.manage", {
+        actorRole: resource?.actorRole,
+      });
+    case "application.move":
+      return (
+        canOrganization(actor, "jobs.manage", {
+          actorRole: resource?.actorRole,
+        }) &&
+        // The employer never acts as the applicant (withdraw is theirs).
+        resource?.to !== "withdrawn" &&
+        isApplicationStatus(resource?.status) &&
+        isApplicationStatus(resource?.to) &&
+        canMoveApplication(resource.status, resource.to)
+      );
+    default:
+      return false;
+  }
 }

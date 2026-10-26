@@ -33,6 +33,10 @@ const verificationNoticePayload = z.strictObject({
   kind: z.enum(["received", "verified", "rejected"]),
 });
 const invitationPayload = z.strictObject({ invitationId: z.uuid() });
+const applicationNoticePayload = z.strictObject({
+  applicationId: z.uuid(),
+  kind: z.enum(["shortlisted", "accepted", "rejected"]),
+});
 const jobNoticePayload = z.strictObject({
   jobId: z.uuid(),
   kind: z.enum(["approved", "rejected", "expired"]),
@@ -99,6 +103,24 @@ export const JOBS = {
       expireInSeconds: 60,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       deadLetter: "organization.notify.dead",
+    },
+  },
+  "applications.notify.dead": {
+    payload: applicationNoticePayload,
+    queue: DEAD_LETTER,
+  },
+  // Email the applicant that an application was shortlisted, accepted or
+  // rejected (src/modules/jobs/jobs.ts). Enqueued with the change.
+  "applications.notify": {
+    payload: applicationNoticePayload,
+    queue: {
+      retryLimit: 8,
+      retryDelay: 30,
+      retryBackoff: true,
+      retryDelayMax: 900,
+      expireInSeconds: 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      deadLetter: "applications.notify.dead",
     },
   },
   "jobs.notify.dead": {

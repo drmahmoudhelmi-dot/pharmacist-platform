@@ -113,3 +113,66 @@ export const isEmailLocale = (v: unknown): v is EmailLocale =>
 
 export const canTransition = (from: JobStatus, to: JobStatus) =>
   TRANSITIONS[from].includes(to);
+
+// ---------------------------------------------------------------------------
+// Applications (ADR-007)
+
+export const APPLICATION_STATUSES = [
+  "submitted",
+  "under_review",
+  "shortlisted",
+  "accepted",
+  "rejected",
+  "withdrawn",
+] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+/** Employer moves; the applicant only withdraws. Trigger in migration 0009. */
+export const APPLICATION_TRANSITIONS: Readonly<
+  Record<ApplicationStatus, readonly ApplicationStatus[]>
+> = {
+  submitted: ["under_review", "rejected", "withdrawn"],
+  under_review: ["shortlisted", "rejected", "withdrawn"],
+  shortlisted: ["accepted", "rejected", "withdrawn"],
+  accepted: [],
+  rejected: [],
+  withdrawn: [],
+};
+
+/** Statuses the applicant may withdraw from. */
+export const WITHDRAWABLE: readonly ApplicationStatus[] = [
+  "submitted",
+  "under_review",
+  "shortlisted",
+];
+
+/** Employer decisions, as targets of a transition. */
+export const EMPLOYER_MOVES = [
+  "under_review",
+  "shortlisted",
+  "accepted",
+  "rejected",
+] as const;
+export type EmployerMove = (typeof EMPLOYER_MOVES)[number];
+
+export const APPLICATION_NOTICE_KINDS = [
+  "shortlisted",
+  "accepted",
+  "rejected",
+] as const;
+export type ApplicationNoticeKind = (typeof APPLICATION_NOTICE_KINDS)[number];
+
+export const APPLICATION_LIMITS = {
+  coverNote: { max: 1000 },
+  perApplicantPerDay: 30,
+  pageSize: 50,
+} as const;
+
+export const isApplicationStatus = (v: unknown): v is ApplicationStatus =>
+  includes(APPLICATION_STATUSES, v);
+export const isEmployerMove = (v: unknown): v is EmployerMove =>
+  includes(EMPLOYER_MOVES, v);
+export const canMoveApplication = (
+  from: ApplicationStatus,
+  to: ApplicationStatus,
+) => APPLICATION_TRANSITIONS[from].includes(to);
