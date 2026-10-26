@@ -35,9 +35,8 @@ export type MemberPermissions = {
   invitableRoles: readonly MemberRole[];
 };
 
-/** Roles an actor may act on: owners any, admins recruiters only. */
-const manageable = (myRole: MemberRole, role: MemberRole) =>
-  myRole === "owner" || (myRole === "admin" && role === "recruiter");
+/** Only owners act on members and invitations (ADR-005, amended). */
+const manageable = (myRole: MemberRole) => myRole === "owner";
 
 const cairoDate = (iso: string, locale: string) =>
   new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
@@ -86,7 +85,7 @@ function MemberRow({
   const write = useWrite();
   const [confirming, setConfirming] = useState(false);
   const canChangeRole = myRole === "owner" && !member.isSelf;
-  const canRemove = !member.isSelf && manageable(myRole, member.role);
+  const canRemove = !member.isSelf && manageable(myRole);
 
   async function onRoleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -259,7 +258,7 @@ export function PendingInvitations({
           key={invitation.id}
           organizationId={organizationId}
           invitation={invitation}
-          canRevoke={manageable(myRole, invitation.role)}
+          canRevoke={manageable(myRole)}
         />
       ))}
     </ul>

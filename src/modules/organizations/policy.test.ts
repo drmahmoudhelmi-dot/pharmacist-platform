@@ -73,19 +73,22 @@ describe("can: fails closed", () => {
   });
 });
 
-describe("can: the role matrix (ADR-005)", () => {
+describe("can: the role matrix (ADR-005, amended: owner and recruiter)", () => {
   it("lets any verified user create an organization", () => {
     expect(can(actor(), "organization.create")).toBe(true);
   });
 
-  it.each(MEMBER_ROLES)("lets a %s read and leave", (role) => {
-    expect(can(actor(), "organization.read", { actorRole: role })).toBe(true);
-    expect(can(actor(), "organization.leave", { actorRole: role })).toBe(true);
+  it.each(MEMBER_ROLES)("lets a %s read, leave and manage jobs", (role) => {
+    for (const action of [
+      "organization.read",
+      "organization.leave",
+      "jobs.manage",
+    ] as const)
+      expect(can(actor(), action, { actorRole: role })).toBe(true);
   });
 
   it.each([
     ["owner", true],
-    ["admin", true],
     ["recruiter", false],
   ] as const)("update, members and invitations for a %s: %s", (role, ok) => {
     for (const action of [
@@ -96,44 +99,49 @@ describe("can: the role matrix (ADR-005)", () => {
       expect(can(actor(), action, { actorRole: role })).toBe(ok);
   });
 
-  // [actor role, target role, may invite / revoke / remove]
+  // [actor role, target role, may invite / revoke / remove / change role]
   const MANAGE: [MemberRole, MemberRole, boolean][] = [
     ["owner", "owner", true],
-    ["owner", "admin", true],
     ["owner", "recruiter", true],
-    ["admin", "owner", false],
-    ["admin", "admin", false],
-    ["admin", "recruiter", true],
     ["recruiter", "owner", false],
-    ["recruiter", "admin", false],
     ["recruiter", "recruiter", false],
   ];
 
   it.each(MANAGE)(
-    "a %s acting on a %s: invite, revoke and remove %s",
+    "a %s acting on a %s: invite, revoke, remove and re-role %s",
     (actorRole, targetRole, ok) => {
       const r = { actorRole, targetRole, targetIsSelf: false };
       expect(can(actor(), "invitation.create", r)).toBe(ok);
       expect(can(actor(), "invitation.revoke", r)).toBe(ok);
       expect(can(actor(), "member.remove", r)).toBe(ok);
+      expect(can(actor(), "member.changeRole", r)).toBe(ok);
     },
   );
+
+  it("refuses the removed admin role and unknown roles", () => {
+    for (const role of ["admin", "god"] as unknown as MemberRole[]) {
+      expect(can(actor(), "organization.read", { actorRole: role })).toBe(
+        false,
+      );
+      expect(
+        can(actor(), "invitation.create", {
+          actorRole: "owner",
+          targetRole: role,
+        }),
+      ).toBe(false);
+    }
+  });
 
   it("needs a known target role for invitations and removals", () => {
     for (const action of [
       "invitation.create",
       "invitation.revoke",
       "member.remove",
-    ] as const) {
-      expect(can(actor(), action, { actorRole: "owner" })).toBe(false);
+      "member.changeRole",
+    ] as const)
       expect(
-        can(actor(), action, {
-          actorRole: "owner",
-          targetRole: "god" as MemberRole,
-          targetIsSelf: false,
-        }),
+        can(actor(), action, { actorRole: "owner", targetIsSelf: false }),
       ).toBe(false);
-    }
   });
 
   it("never removes or re-roles oneself (leaving is separate)", () => {
@@ -141,29 +149,14 @@ describe("can: the role matrix (ADR-005)", () => {
       expect(
         can(actor(), action, {
           actorRole: "owner",
-          targetRole: "admin",
+          targetRole: "recruiter",
           targetIsSelf: true,
         }),
       ).toBe(false);
       // Unknown self-ness is treated as self.
       expect(
-        can(actor(), action, { actorRole: "owner", targetRole: "admin" }),
+        can(actor(), action, { actorRole: "owner", targetRole: "recruiter" }),
       ).toBe(false);
     }
-  });
-
-  it.each([
-    ["owner", true],
-    ["admin", false],
-    ["recruiter", false],
-  ] as const)("changing another member's role as a %s: %s", (role, ok) => {
-    for (const targetRole of MEMBER_ROLES)
-      expect(
-        can(actor(), "member.changeRole", {
-          actorRole: role,
-          targetRole,
-          targetIsSelf: false,
-        }),
-      ).toBe(ok);
   });
 });

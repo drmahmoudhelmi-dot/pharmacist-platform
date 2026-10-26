@@ -13,15 +13,16 @@ export type OrganizationAction =
   // Any member.
   | "organization.read"
   | "organization.leave"
-  // Owners and admins.
+  // Owners and recruiters: jobs and applications (step 6).
+  | "jobs.manage"
+  // Owners only.
   | "organization.update"
   | "members.read"
   | "invitations.read"
-  // Owners any role; admins recruiters only (`targetRole`).
   | "invitation.create"
   | "invitation.revoke"
-  | "member.remove"
   // Owners only, never on themselves.
+  | "member.remove"
   | "member.changeRole";
 
 export type OrganizationResource = {
@@ -33,23 +34,14 @@ export type OrganizationResource = {
   targetIsSelf?: boolean;
 };
 
-const MANAGERS: readonly MemberRole[] = ["owner", "admin"];
-
-/**
- * An owner may act on any role; an admin only on recruiters. Used for
- * inviting, revoking invitations and removing members.
- */
-function mayManageRole(actorRole: MemberRole, targetRole: unknown): boolean {
-  if (!isMemberRole(targetRole)) return false;
-  if (actorRole === "owner") return true;
-  return actorRole === "admin" && targetRole === "recruiter";
-}
-
 /**
  * The single authorization decision for organizations. Fails closed: no
  * actor, an unverified email, an unknown action, no membership or any unmet
  * condition → false. The "at least one owner" rule needs the database and is
  * enforced by the service under a row lock.
+ *
+ * Roles (ADR-005, amended 2026-10-26): owners manage the organization, its
+ * members and invitations; recruiters manage jobs and applications only.
  */
 export function can(
   actor: Actor | null | undefined,
@@ -67,19 +59,18 @@ export function can(
   switch (name) {
     case "organization.read":
     case "organization.leave":
+    case "jobs.manage":
       return true;
     case "organization.update":
     case "members.read":
     case "invitations.read":
-      return MANAGERS.includes(role);
+      return role === "owner";
     case "invitation.create":
     case "invitation.revoke":
-      return mayManageRole(role, resource?.targetRole);
+      return role === "owner" && isMemberRole(resource?.targetRole);
     case "member.remove":
-      // Leaving is its own action; removal targets someone else.
-      if (resource?.targetIsSelf !== false) return false;
-      return mayManageRole(role, resource?.targetRole);
     case "member.changeRole":
+      // Leaving is its own action; these target someone else.
       return (
         role === "owner" &&
         resource?.targetIsSelf === false &&

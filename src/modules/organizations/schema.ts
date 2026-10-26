@@ -14,6 +14,7 @@ import { user } from "@/modules/identity/schema";
 import { governorate } from "@/modules/profiles/schema";
 import {
   AUDIT_ACTIONS,
+  AUDIT_ROLES,
   EMAIL_LOCALES,
   INVITATION_STATUSES,
   LIMITS,
@@ -208,8 +209,8 @@ export const organizationAudit = pgTable(
     action: text("action", { enum: AUDIT_ACTIONS }).notNull(),
     memberId: uuid("member_id"),
     invitationId: uuid("invitation_id"),
-    role: text("role", { enum: MEMBER_ROLES }),
-    previousRole: text("previous_role", { enum: MEMBER_ROLES }),
+    role: text("role", { enum: AUDIT_ROLES }),
+    previousRole: text("previous_role", { enum: AUDIT_ROLES }),
     createdAt: timestamptz("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -224,7 +225,7 @@ export const organizationAudit = pgTable(
     check(
       "organization_audit_role_check",
       sql.raw(
-        `(role is null or role in (${sqlList(MEMBER_ROLES)})) and (previous_role is null or previous_role in (${sqlList(MEMBER_ROLES)}))`,
+        `(role is null or role in (${sqlList(AUDIT_ROLES)})) and (previous_role is null or previous_role in (${sqlList(AUDIT_ROLES)}))`,
       ),
     ),
   ],
