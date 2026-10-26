@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Actor } from "@/modules/identity/policy";
 import {
@@ -9,6 +9,7 @@ import {
 import { getOwnApplicationShare } from "@/modules/profiles/service";
 import { getVerifiedUserIds } from "@/modules/verification/service";
 import { enqueue, type PgBoss } from "@/shared/jobs/boss";
+import { logger } from "@/shared/logging/logger";
 import {
   type ApplicationSnapshot,
   applicationSnapshotSchema,
@@ -17,6 +18,7 @@ import {
   APPLICATION_LIMITS,
   type ApplicationNoticeKind,
   type ApplicationStatus,
+  EMPLOYER_MOVES,
   type EmployerMove,
   isApplicationStatus,
   isEmployerMove,
@@ -59,6 +61,16 @@ export type ApplicationResult<K extends string = never, T = object> =
   | { ok: false; error: ApplicationError; fieldErrors?: FieldErrors<K> };
 
 const fail = (error: ApplicationError) => ({ ok: false as const, error });
+
+const log = logger.child({ module: "applications" });
+
+/** Parses a stored snapshot; a malformed one is logged (ids only), not shown. */
+function readSnapshot(id: string, value: unknown): ApplicationSnapshot | null {
+  const parsed = applicationSnapshotSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  log.error({ event: "applications.snapshot_invalid", applicationId: id });
+  return null;
+}
 
 const statusOf = (v: string): ApplicationStatus =>
   isApplicationStatus(v) ? v : "submitted";
@@ -394,28 +406,60 @@ export type ApplicationSummary = {
   id: string;
   displayName: string;
   careerStage: ApplicationSnapshot["careerStage"];
-  yearsExperience: number;
+  /** Null once withdrawn (only name and career stage stay visible). */
+  yearsExperience: number | null;
   status: ApplicationStatus;
   submittedAt: string;
   applicantVerified: boolean;
 };
 
-/** A job's applications for members of its organization; empty otherwise. */
-export async function listJobApplications(
-  db: Db,
-  actor: Actor,
-  jobId: unknown,
-): Promise<ApplicationSummary[]> {
-  if (!isUuid(jobId)) return [];
+export type ApplicationsPage = {
+  items: ApplicationSummary[];
+  nextCursor: string | null;
+};
+
+function encodeCursor(at: Date, id: string) {
+  return Buffer.from(`${at.toISOString()}|${id}`).toString("base64url");
+}
+
+function decodeCursor(cursor: unknown) {
+  if (typeof cursor !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(cursor))
+    return null;
+  const [iso, id] = Buffer.from(cursor, "base64url").toString().split("|");
+  const at = iso ? new Date(iso) : null;
+  if (!at || Number.isNaN(at.getTime()) || !isUuid(id)) return null;
+  return { at, id };
+}
+
+/** The caller's role in the organization of a job. */
+async function roleForJob(db: Db, actor: Actor, jobId: string) {
   const [target] = await db
     .select({ organizationId: job.organizationId })
     .from(job)
     .where(eq(job.id, jobId))
     .limit(1);
-  if (!target) return [];
-  const role = await getRoleInOrganization(db, actor, target.organizationId);
+  return target
+    ? getRoleInOrganization(db, actor, target.organizationId)
+    : null;
+}
+
+/**
+ * A job's applications for members of its organization, oldest first, in
+ * keyset pages of `pageSize`; empty for anyone else. Withdrawn applications
+ * keep only the name and career stage (ADR-007).
+ */
+export async function listJobApplications(
+  db: Db,
+  actor: Actor,
+  jobId: unknown,
+  cursor?: unknown,
+): Promise<ApplicationsPage> {
+  const empty: ApplicationsPage = { items: [], nextCursor: null };
+  if (!isUuid(jobId)) return empty;
+  const role = await roleForJob(db, actor, jobId);
   if (!canApplication(actor, "application.read", { actorRole: role }))
-    return [];
+    return empty;
+  const after = decodeCursor(cursor);
   const rows = await db
     .select({
       id: jobApplication.id,
@@ -425,28 +469,67 @@ export async function listJobApplications(
       profileSnapshot: jobApplication.profileSnapshot,
     })
     .from(jobApplication)
-    .where(eq(jobApplication.jobId, jobId))
+    .where(
+      and(
+        eq(jobApplication.jobId, jobId),
+        after
+          ? or(
+              gt(jobApplication.submittedAt, after.at),
+              and(
+                eq(jobApplication.submittedAt, after.at),
+                gt(jobApplication.id, after.id),
+              ),
+            )
+          : undefined,
+      ),
+    )
     .orderBy(asc(jobApplication.submittedAt), asc(jobApplication.id))
-    .limit(500);
+    .limit(APPLICATION_LIMITS.pageSize + 1);
+  const page = rows.slice(0, APPLICATION_LIMITS.pageSize);
   const verified = await getVerifiedUserIds(
     db,
-    rows.map((r) => r.applicantId),
+    page.map((r) => r.applicantId),
   );
-  return rows.flatMap((r) => {
-    const snap = applicationSnapshotSchema.safeParse(r.profileSnapshot);
-    if (!snap.success) return [];
-    return [
-      {
-        id: r.id,
-        displayName: snap.data.displayName,
-        careerStage: snap.data.careerStage,
-        yearsExperience: snap.data.yearsExperience,
-        status: statusOf(r.status),
-        submittedAt: r.submittedAt.toISOString(),
-        applicantVerified: verified.has(r.applicantId),
-      },
-    ];
-  });
+  const last = page.at(-1);
+  return {
+    items: page.flatMap((r) => {
+      const snap = readSnapshot(r.id, r.profileSnapshot);
+      if (!snap) return [];
+      const status = statusOf(r.status);
+      return [
+        {
+          id: r.id,
+          displayName: snap.displayName,
+          careerStage: snap.careerStage,
+          yearsExperience: status === "withdrawn" ? null : snap.yearsExperience,
+          status,
+          submittedAt: r.submittedAt.toISOString(),
+          applicantVerified: verified.has(r.applicantId),
+        },
+      ];
+    }),
+    nextCursor:
+      rows.length > APPLICATION_LIMITS.pageSize && last
+        ? encodeCursor(last.submittedAt, last.id)
+        : null,
+  };
+}
+
+/** How many applications a job has, for its organization's members. */
+export async function countJobApplications(
+  db: Db,
+  actor: Actor,
+  jobId: unknown,
+): Promise<number | null> {
+  if (!isUuid(jobId)) return null;
+  const role = await roleForJob(db, actor, jobId);
+  if (!canApplication(actor, "application.read", { actorRole: role }))
+    return null;
+  const [row] = await db
+    .select({ n: count() })
+    .from(jobApplication)
+    .where(eq(jobApplication.jobId, jobId));
+  return row?.n ?? 0;
 }
 
 export type EmployerApplicationView = {
@@ -455,9 +538,17 @@ export type EmployerApplicationView = {
   jobTitle: string;
   status: ApplicationStatus;
   submittedAt: string;
-  profile: ApplicationSnapshot;
-  phoneE164: string | null;
-  coverNote: string | null;
+  displayName: string;
+  careerStage: ApplicationSnapshot["careerStage"];
+  /**
+   * What the applicant shared. Null once they withdrew: the employer then
+   * keeps only the name, career stage and status (ADR-007).
+   */
+  shared: {
+    profile: ApplicationSnapshot;
+    phoneE164: string | null;
+    coverNote: string | null;
+  } | null;
   applicantVerified: boolean;
   /** Target statuses the caller may move this application to. */
   moves: EmployerMove[];
@@ -491,14 +582,17 @@ export async function getApplicationForEmployer(
   const role = await getRoleInOrganization(db, actor, row.organizationId);
   if (!canApplication(actor, "application.read", { actorRole: role }))
     return null;
-  const snap = applicationSnapshotSchema.safeParse(row.profileSnapshot);
-  if (!snap.success) return null;
+  const snap = readSnapshot(row.id, row.profileSnapshot);
+  if (!snap) return null;
   const status = statusOf(row.status);
   const verified = await getVerifiedUserIds(db, [row.applicantId]);
-  const moves = (
-    ["under_review", "shortlisted", "accepted", "rejected"] as const
-  ).filter((to) =>
-    canApplication(actor, "application.move", { actorRole: role, status, to }),
+  const moves = EMPLOYER_MOVES.filter((to) =>
+    canApplication(actor, "application.move", {
+      actorRole: role,
+      applicantId: row.applicantId,
+      status,
+      to,
+    }),
   );
   return {
     id: row.id,
@@ -506,9 +600,12 @@ export async function getApplicationForEmployer(
     jobTitle: row.jobTitle,
     status,
     submittedAt: row.submittedAt.toISOString(),
-    profile: snap.data,
-    phoneE164: row.phoneE164,
-    coverNote: row.coverNote,
+    displayName: snap.displayName,
+    careerStage: snap.careerStage,
+    shared:
+      status === "withdrawn"
+        ? null
+        : { profile: snap, phoneE164: row.phoneE164, coverNote: row.coverNote },
     applicantVerified: verified.has(row.applicantId),
     moves,
   };
@@ -516,7 +613,8 @@ export async function getApplicationForEmployer(
 
 /**
  * Moves an application (employer side). Shortlisted, accepted and rejected
- * email the applicant, in the same transaction.
+ * email the applicant, in the same transaction. Nobody moves their own
+ * application, even after joining the organization.
  */
 export async function moveApplication(
   deps: ApplicationsDeps,
@@ -531,6 +629,7 @@ export async function moveApplication(
     const [row] = await tx
       .select({
         status: jobApplication.status,
+        applicantId: jobApplication.applicantId,
         organizationId: job.organizationId,
       })
       .from(jobApplication)
@@ -542,9 +641,11 @@ export async function moveApplication(
     if (!canApplication(actor, "application.read", { actorRole: role }))
       return fail("notFound");
     const status = statusOf(row.status);
+    if (row.applicantId === actor.userId) return fail("forbidden");
     if (
       !canApplication(actor, "application.move", {
         actorRole: role,
+        applicantId: row.applicantId,
         status,
         to,
       })

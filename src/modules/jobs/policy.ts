@@ -135,6 +135,10 @@ export function canApplication(
         canOrganization(actor, "jobs.manage", {
           actorRole: resource?.actorRole,
         }) &&
+        // Nobody decides their own application, even after joining the
+        // organization; the applicant id is required.
+        typeof resource?.applicantId === "string" &&
+        resource.applicantId !== actor.userId &&
         // The employer never acts as the applicant (withdraw is theirs).
         resource?.to !== "withdrawn" &&
         isApplicationStatus(resource?.status) &&

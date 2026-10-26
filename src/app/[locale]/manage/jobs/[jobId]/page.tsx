@@ -1,7 +1,7 @@
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/modules/identity/policy";
-import { listJobApplications } from "@/modules/jobs/applications";
+import { countJobApplications } from "@/modules/jobs/applications";
 import { getJobForMember } from "@/modules/jobs/service";
 import { dateTimeFormat, formatCount } from "@/modules/jobs/ui/format";
 import { JobActions } from "@/modules/jobs/ui/job-actions";
@@ -30,8 +30,7 @@ export default async function ManageJobPage({ params }: Props) {
   const db = getDb();
   const job = await getJobForMember(db, actor, jobId);
   if (!job) notFound();
-  const applicationCount = (await listJobApplications(db, actor, job.id))
-    .length;
+  const applicationCount = (await countJobApplications(db, actor, job.id)) ?? 0;
   const governorates = job.permissions.edit ? await listGovernorates(db) : [];
   const t = await getTranslations("Jobs");
   const tr = await getTranslations("JobRejectReasons");

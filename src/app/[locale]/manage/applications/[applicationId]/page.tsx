@@ -57,13 +57,27 @@ export default async function ApplicationPage({ params }: Props) {
         </h2>
         <MoveButtons applicationId={application.id} moves={application.moves} />
       </section>
-      <p className="text-sm text-muted">{t("snapshotNote")}</p>
-      <ApplicantSnapshot
-        profile={application.profile}
-        phoneE164={application.phoneE164}
-        coverNote={application.coverNote}
-        verified={application.applicantVerified}
-      />
+      {application.shared ? (
+        <>
+          <p className="text-sm text-muted">{t("snapshotNote")}</p>
+          <ApplicantSnapshot
+            profile={application.shared.profile}
+            phoneE164={application.shared.phoneE164}
+            coverNote={application.shared.coverNote}
+            verified={application.applicantVerified}
+          />
+        </>
+      ) : (
+        <section
+          className="flex flex-col gap-1 rounded-lg border border-muted bg-surface p-3"
+          data-testid="application-withdrawn"
+        >
+          <p className="font-semibold">
+            <bdi>{application.displayName}</bdi>
+          </p>
+          <p className="text-muted">{t("withdrawnRedacted")}</p>
+        </section>
+      )}
       <TextLink href={`/manage/jobs/${application.jobId}/applications`}>
         {t("backToApplications")}
       </TextLink>

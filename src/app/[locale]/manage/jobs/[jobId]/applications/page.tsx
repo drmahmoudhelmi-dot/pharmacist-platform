@@ -11,19 +11,32 @@ import { Link } from "@/shared/i18n/navigation";
 import { isLocale } from "@/shared/i18n/routing";
 import { PageShell, TextLink } from "@/shared/ui/page-shell";
 
-type Props = { params: Promise<{ locale: string; jobId: string }> };
+type Props = {
+  params: Promise<{ locale: string; jobId: string }>;
+  searchParams: Promise<{ cursor?: string | string[] }>;
+};
 
 export const dynamicParams = true;
 
 /** A job's applications for the members of its organization; others: 404. */
-export default async function JobApplicationsPage({ params }: Props) {
+export default async function JobApplicationsPage({
+  params,
+  searchParams,
+}: Props) {
   const { locale, jobId } = await params;
+  const { cursor } = await searchParams;
   if (isLocale(locale)) setRequestLocale(locale);
   const actor = await requireActor();
   const db = getDb();
   const job = await getJobForMember(db, actor, jobId);
   if (!job) notFound();
-  const applications = await listJobApplications(db, actor, job.id);
+  const page = await listJobApplications(
+    db,
+    actor,
+    job.id,
+    typeof cursor === "string" ? cursor : undefined,
+  );
+  const applications = page.items;
   const t = await getTranslations("Applications");
   const tp = await getTranslations("Profile");
   const tv = await getTranslations("ProfileView");
@@ -55,8 +68,10 @@ export default async function JobApplicationsPage({ params }: Props) {
                   {a.displayName}
                 </bdi>
                 <span className="text-sm text-muted">
-                  {tp(`careerStages.${a.careerStage}`)} ·{" "}
-                  {tv("yearsExperience", { count: a.yearsExperience })}
+                  {tp(`careerStages.${a.careerStage}`)}
+                  {a.yearsExperience !== null
+                    ? ` · ${tv("yearsExperience", { count: a.yearsExperience })}`
+                    : null}
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
                   <ApplicationStatusBadge status={a.status} />
@@ -74,6 +89,13 @@ export default async function JobApplicationsPage({ params }: Props) {
           ))}
         </ul>
       )}
+      {page.nextCursor ? (
+        <TextLink
+          href={`/manage/jobs/${job.id}/applications?cursor=${page.nextCursor}`}
+        >
+          {t("nextPage")}
+        </TextLink>
+      ) : null}
       <TextLink href={`/manage/jobs/${job.id}`}>{t("backToJob")}</TextLink>
     </PageShell>
   );

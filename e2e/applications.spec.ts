@@ -259,6 +259,10 @@ test("apply with a shared phone, get shortlisted, withdraw (360px)", async ({
   await expect(page.getByTestId("move-buttons")).toContainText(
     "لا توجد إجراءات أخرى",
   );
+  // Withdrawal redacts what was shared: no phone, no note, no profile.
+  await expect(page.getByTestId("application-withdrawn")).toBeVisible();
+  await expect(page.getByTestId("applicant-phone")).toHaveCount(0);
+  expect(await page.content()).not.toContain(phoneE164);
 
   // --- A third user cannot open the employer's page; neither can the applicant.
   const third = await newClient(browser, baseURL);

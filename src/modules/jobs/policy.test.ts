@@ -154,7 +154,12 @@ describe("applications policy (ADR-007)", () => {
       for (const status of APPLICATION_STATUSES)
         for (const to of APPLICATION_STATUSES)
           expect(
-            canApplication(me, "application.move", { actorRole, status, to }),
+            canApplication(me, "application.move", {
+              actorRole,
+              applicantId: "applicant-2",
+              status,
+              to,
+            }),
             `${status} -> ${to}`,
           ).toBe(
             to !== "withdrawn" && APPLICATION_TRANSITIONS[status].includes(to),
@@ -170,5 +175,15 @@ describe("applications policy (ADR-007)", () => {
     expect(
       canApplication(moderator, "application.read", { actorRole: null }),
     ).toBe(false);
+    // Never on one's own application, and the applicant must be known.
+    for (const applicantId of ["applicant-1", undefined])
+      expect(
+        canApplication(me, "application.move", {
+          actorRole: "owner",
+          applicantId,
+          status: "submitted",
+          to: "under_review",
+        }),
+      ).toBe(false);
   });
 });

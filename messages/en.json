@@ -882,7 +882,7 @@
     "viewJob": "View the job",
     "jobNoLongerLive": "This job is no longer published.",
     "withdraw": "Withdraw application",
-    "withdrawConfirm": "Withdraw your application? The employer will no longer see it, and you cannot apply to this job again.",
+    "withdrawConfirm": "Withdraw your application? The employer will keep only your name and career stage with the status “withdrawn”; they will no longer see your phone, profile or note. You cannot apply to this job again.",
     "confirmWithdraw": "Yes, withdraw",
     "cancel": "Cancel",
     "withdrawn": "Your application was withdrawn.",
@@ -938,7 +938,9 @@
     "noPhoneShared": "The applicant did not share a phone number.",
     "coverNoteHeading": "Applicant's note",
     "noCoverNote": "The applicant did not write a note.",
-    "backToApplications": "All applications"
+    "backToApplications": "All applications",
+    "withdrawnRedacted": "The applicant withdrew this application. What they shared (phone, profile and note) is no longer available to you.",
+    "nextPage": "Next page"
   },
   "ApplicationErrors": {
     "forbidden": "You do not have permission for this action. Make sure your email is confirmed and that you are not a member of the job's organization.",

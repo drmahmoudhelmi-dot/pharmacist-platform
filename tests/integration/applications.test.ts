@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { user } from "@/modules/identity/schema";
 import {
   applyToJob,
+  countJobApplications,
   exportOwnApplications,
   getApplicationForEmployer,
   getApplyState,
@@ -16,6 +17,7 @@ import { APPLICATION_LIMITS } from "@/modules/jobs/constants";
 import { sendApplicationNotice } from "@/modules/jobs/jobs";
 import { applicationEvent, jobApplication } from "@/modules/jobs/schema";
 import { closeJob, pauseJob } from "@/modules/jobs/service";
+import { leaveOrganization } from "@/modules/organizations/service";
 import {
   upsertOwnProfessionalDetails,
   upsertOwnProfile,
@@ -140,14 +142,16 @@ describe("applying", () => {
       result.applicationId,
     );
     expect(view).toMatchObject({
-      profile: {
-        displayName: "د. منى الاختبار",
-        careerStage: "pharmacist",
-        yearsExperience: 5,
-        governorate: { code: "EG-ALX" },
+      shared: {
+        profile: {
+          displayName: "د. منى الاختبار",
+          careerStage: "pharmacist",
+          yearsExperience: 5,
+          governorate: { code: "EG-ALX" },
+        },
+        phoneE164: "+201012345678",
+        coverNote: "متاحة فورًا",
       },
-      phoneE164: "+201012345678",
-      coverNote: "متاحة فورًا",
       applicantVerified: false,
       moves: ["under_review", "rejected"],
     });
@@ -176,8 +180,8 @@ describe("applying", () => {
       owner.actor,
       result.applicationId,
     );
-    expect(view?.phoneE164).toBeNull();
-    expect(view?.coverNote).toBeNull();
+    expect(view?.shared?.phoneE164).toBeNull();
+    expect(view?.shared?.coverNote).toBeNull();
   });
 
   it("refuses without a profile, to own organization, to non-live jobs and over the limit", async () => {
@@ -251,7 +255,8 @@ describe("employer side", () => {
     const rb = await apply(b, jobId);
     if (!ra.ok || !rb.ok) throw new Error("apply");
 
-    const list = await listJobApplications(h.db, recruiter.actor, jobId);
+    const list = (await listJobApplications(h.db, recruiter.actor, jobId))
+      .items;
     expect(list.map((x) => x.id)).toEqual([ra.applicationId, rb.applicationId]);
     expect(list[0]).toMatchObject({
       displayName: "د. منى الاختبار",
@@ -340,7 +345,10 @@ describe("employer side", () => {
     const r = await apply(a, jobId);
     if (!r.ok) throw new Error("apply");
     for (const who of [other.owner, a, await f.person("nobody")]) {
-      expect(await listJobApplications(h.db, who.actor, jobId)).toEqual([]);
+      expect(await listJobApplications(h.db, who.actor, jobId)).toEqual({
+        items: [],
+        nextCursor: null,
+      });
       expect(
         await getApplicationForEmployer(h.db, who.actor, r.applicationId),
       ).toBeNull();
@@ -369,6 +377,97 @@ describe("employer side", () => {
     });
     expect((await listMyApplications(h.db, a.actor))[0]?.jobLive).toBe(false);
   });
+});
+
+describe("review fixes (Opus review of 6b)", () => {
+  it("redacts a withdrawn application for the employer", async () => {
+    const { jobId, owner } = await f.publishedJob();
+    const a = await applicant("redact");
+    const r = await apply(a, jobId);
+    if (!r.ok) throw new Error("apply");
+    await withdrawApplication(deps, a.actor, r.applicationId);
+    const view = await getApplicationForEmployer(
+      h.db,
+      owner.actor,
+      r.applicationId,
+    );
+    expect(view).toMatchObject({
+      status: "withdrawn",
+      displayName: "د. منى الاختبار",
+      careerStage: "pharmacist",
+      shared: null,
+      moves: [],
+    });
+    const text = JSON.stringify(view);
+    expect(text).not.toContain("+201012345678");
+    expect(text).not.toContain("متاحة فورًا");
+    const [item] = (await listJobApplications(h.db, owner.actor, jobId)).items;
+    expect(item).toMatchObject({ status: "withdrawn", yearsExperience: null });
+  });
+
+  it("never lets an applicant decide their own application after joining the organization", async () => {
+    const { jobId, owner, organizationId } = await f.publishedJob();
+    const a = await applicant("joiner");
+    const r = await apply(a, jobId);
+    if (!r.ok) throw new Error("apply");
+    await f.addMember(owner, organizationId, a);
+    const view = await getApplicationForEmployer(
+      h.db,
+      a.actor,
+      r.applicationId,
+    );
+    expect(view?.moves).toEqual([]);
+    expect(
+      await moveApplication(deps, a.actor, r.applicationId, "under_review"),
+    ).toEqual({ ok: false, error: "forbidden" });
+  });
+
+  it("removes a recruiter's access when they leave the organization", async () => {
+    const { jobId, owner, organizationId } = await f.publishedJob();
+    const recruiter = await f.person("leaver");
+    await f.addMember(owner, organizationId, recruiter);
+    const a = await applicant("seen");
+    const r = await apply(a, jobId);
+    if (!r.ok) throw new Error("apply");
+    expect(
+      (await listJobApplications(h.db, recruiter.actor, jobId)).items,
+    ).toHaveLength(1);
+    await leaveOrganization(deps, recruiter.actor, organizationId);
+    expect(await listJobApplications(h.db, recruiter.actor, jobId)).toEqual({
+      items: [],
+      nextCursor: null,
+    });
+    expect(
+      await getApplicationForEmployer(h.db, recruiter.actor, r.applicationId),
+    ).toBeNull();
+    expect(
+      await moveApplication(deps, recruiter.actor, r.applicationId, "rejected"),
+    ).toEqual({ ok: false, error: "notFound" });
+  });
+
+  it("pages a job's applications and counts them", async () => {
+    const { jobId, owner } = await f.publishedJob();
+    const total = APPLICATION_LIMITS.pageSize + 3;
+    for (let i = 0; i < total; i++)
+      await apply(await applicant(`page${i}`), jobId, { coverNote: "" });
+    const first = await listJobApplications(h.db, owner.actor, jobId);
+    expect(first.items).toHaveLength(APPLICATION_LIMITS.pageSize);
+    const second = await listJobApplications(
+      h.db,
+      owner.actor,
+      jobId,
+      first.nextCursor,
+    );
+    expect(second.items).toHaveLength(3);
+    expect(second.nextCursor).toBeNull();
+    expect(
+      new Set([...first.items, ...second.items].map((x) => x.id)).size,
+    ).toBe(total);
+    expect(await countJobApplications(h.db, owner.actor, jobId)).toBe(total);
+    expect(
+      await countJobApplications(h.db, (await f.person("x")).actor, jobId),
+    ).toBeNull();
+  }, 180_000);
 });
 
 describe("applicant rights and integrity", () => {

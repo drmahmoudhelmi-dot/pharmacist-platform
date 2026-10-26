@@ -35,6 +35,18 @@ The worker emails the applicant when an application is shortlisted, accepted or 
 
 The applicant's data export includes their applications (job title, organization name, status, dates, what they shared). An application's snapshot is personal data under the retention question (data-protection status, question 6); nothing is deleted automatically in this step.
 
+## Implementation notes (added after 6b was built)
+
+- Migration `0009_applications`: `job_application` (unique per job and applicant; `job_id` RESTRICT, `applicant_id` CASCADE) and append-only `application_event`; the `job_application_guard` trigger keeps the job, applicant, snapshot, phone, note and submission time immutable and enforces the transitions. New tables only.
+- The snapshot is validated with a strict Zod schema (`application-snapshot.ts`) when written and when read; a stored snapshot that fails to parse is logged (`applications.snapshot_invalid`, id only) and left out.
+- Withdrawal redacts: once `withdrawn`, the employer sees only the display name, career stage and status; the phone, the note and the rest of the snapshot are no longer returned (the row keeps them for the applicant's own export, pending the retention answer).
+- Nobody moves their own application, even after joining the job's organization (checked with the applicant id inside the transaction).
+- Employer lists are keyset-paged (50); the job page uses a count query.
+- Applying takes the job row `FOR SHARE` and an advisory lock per applicant, so pause or close cannot race the insert and the daily limit holds; a concurrent duplicate hits the unique constraint and answers `alreadyApplied`.
+- The data export adds `applications` in the export route, because jobs depends on profiles (profiles builds the snapshot) and a call the other way would be circular.
+- Also fixed in this step: governorate lookups inside transactions in the jobs and organizations services used a second pooled connection; with as many concurrent writes as pool connections, the pool deadlocked. They now use the transaction.
+- Known limits: deleting an organization will fail once one of its jobs has applications (`job_id` RESTRICT); organization deletion does not exist yet and must decide this with the retention answer. A notice superseded before the worker runs (shortlisted, then accepted) is skipped; the applicant gets the latest one.
+
 ## Alternatives considered
 
 - Live profile instead of a snapshot: rejected; employers would see later changes and a hidden profile's data, which the applicant did not agree to share with them.
