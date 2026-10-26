@@ -43,6 +43,9 @@ export default async function HomePage({ params }: Props) {
               <Link href="/profile" className={primaryLink}>
                 {t("myProfile")}
               </Link>
+              <Link href="/organizations" className={secondaryLink}>
+                {t("myOrganizations")}
+              </Link>
               <Link href="/account" className={secondaryLink}>
                 {t("myAccount")}
               </Link>

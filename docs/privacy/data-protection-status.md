@@ -17,7 +17,7 @@ Tracks Egyptian data-protection obligations (Law 151 of 2020 and its executive r
 | 3 | Vendors that receive personal data: email delivery provider, error monitoring, Have I Been Pwned (receives only a 5-character password-hash prefix), future SMS and payment providers. Which count as transfers, and what contracts are needed? | Vendor selection and contracts | Pending |
 | 4 | Must we appoint and register a data protection officer, and by when? | Licence prerequisite | Pending |
 | 5 | Consent and privacy notice wording in Arabic for registration and for identity verification (national ID, syndicate card). | Required screens in steps 2–4 | Pending |
-| 6 | Retention periods: rejected and expired verification submissions and documents, closed accounts, applications, audit logs (decisions and document access log; today they are deleted with the user's account, and kept without the reviewer when a staff account is deleted). | Deletion jobs and schema | Pending |
+| 6 | Retention periods: rejected and expired verification submissions and documents, closed accounts, applications, organization invitations (invited addresses) and closed organizations, audit logs (decisions and document access log; today they are deleted with the user's account, and kept without the reviewer when a staff account is deleted). | Deletion jobs and schema | Pending |
 | 7 | Breach notification: deadline, to whom, and content. | Incident runbook (launch checklist) | Pending |
 | 8 | National ID handling: is our approach (field-level encryption, masked display, reviewer-only access, access log) sufficient, and may we keep a keyed hash for duplicate detection? | Step 4 design | Pending |
 | 9 | Data subject rights: required response times for access, correction, export and deletion requests. Must the export include the reviewer's internal note on a verification decision (today it does not; it includes status, claims, masked ID, document kinds and reason code)? | Account features | Pending |
@@ -35,5 +35,9 @@ Tracks Egyptian data-protection obligations (Law 151 of 2020 and its executive r
 | Verification decisions (reviewer, decision, reason code, internal note, time) | Accountability for verification | `verification_decision`, append-only. The user sees the decision and a localized reason, not the note or the reviewer |
 | Document views and national ID reveals (who, what, when, IP) | Audit of access to identity documents | `document_access_log`, append-only |
 | Consent text version accepted with a submission | Record of consent (wording pending, question 5) | `verification_submission.consent_version` (`draft-pending-counsel` until counsel's wording is in) |
+| Organizations (pharmacy or chain name, governorate, optional business address) | Employer identity for job posts (step 6) | `organization`, entered by members; unverified |
+| Organization membership (user, role, who added them, when) | Who may act for an employer | `organization_member`; owners and admins see members' emails |
+| Invited email addresses, role, inviter, status and times | Inviting someone to an organization, including people without an account | `organization_invitation`; the address is emailed once by the worker. Kept after the invitation closes, pending question 6 |
+| Membership and invitation changes (actor, action, member or invitation id, roles, time) | Audit of who gave whom access to an employer | `organization_audit`, append-only |
 | CVs and applications | Job applications | Private storage and jobs tables |
 | Staff actions | Audit trail | Audit log |

@@ -22,3 +22,9 @@ export {
   verificationDocument,
   verificationSubmission,
 } from "@/modules/verification/schema";
+export {
+  organization,
+  organizationAudit,
+  organizationInvitation,
+  organizationMember,
+} from "@/modules/organizations/schema";

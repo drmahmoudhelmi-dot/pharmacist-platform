@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { sendInvitationNotice } from "../src/modules/organizations/jobs";
 import { processUpload } from "../src/modules/uploads/processing";
 import { sendVerificationNotice } from "../src/modules/verification/jobs";
 import { getEnv } from "../src/shared/config/env";
@@ -13,7 +14,7 @@ import { getS3 } from "../src/shared/storage/client";
 // .github/workflows/ci.yml). Runs the worker's real code paths in the test
 // process against the local services: the upload pipeline (re-encode, store,
 // mark clean) with a scanner stub that reports clean, and the verification
-// email job sending through Mailpit. Nothing here is imported by the app.
+// and organization invitation email jobs sending through Mailpit. Nothing here is imported by the app.
 //
 // Uploads are processed by id, only the test's own, so specs running in
 // parallel (uploads.spec.ts expects its uploads to stay `processing`) are not
@@ -87,6 +88,46 @@ export async function sendQueuedVerificationEmails(): Promise<number> {
           job.data.kind,
         );
         await boss.complete("verification.notify", job.id);
+        sent += 1;
+      }
+    }
+  } finally {
+    await boss.stop({ graceful: false });
+    await pool.end();
+  }
+}
+
+/** Sends every queued organization invitation email to Mailpit, like the worker. */
+export async function sendQueuedInvitationEmails(): Promise<number> {
+  const { env, pool, db } = local();
+  const boss = createClientBoss(
+    (text, values) => pool.query(text, values),
+    logger,
+  );
+  await boss.start();
+  let sent = 0;
+  try {
+    for (;;) {
+      const jobs = await boss.fetch<{ invitationId: string }>(
+        "organization.notify",
+        { batchSize: 20 },
+      );
+      if (jobs.length === 0) return sent;
+      for (const job of jobs) {
+        await sendInvitationNotice(
+          {
+            db,
+            emailSender: createSmtpSender({
+              host: env.SMTP_HOST,
+              port: env.SMTP_PORT,
+              from: env.EMAIL_FROM,
+            }),
+            logger,
+            appUrl: env.APP_URL,
+          },
+          job.data.invitationId,
+        );
+        await boss.complete("organization.notify", job.id);
         sent += 1;
       }
     }

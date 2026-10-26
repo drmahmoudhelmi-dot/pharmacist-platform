@@ -1,5 +1,6 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
+import { sendInvitationNotice } from "@/modules/organizations/jobs";
 import { failUpload, processUpload } from "@/modules/uploads/processing";
 import {
   expireVerifications,
@@ -69,6 +70,20 @@ export const HANDLERS: Record<JobName, Handler> = {
         kind: payload.kind,
       });
   },
+  "organization.notify": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "organization.notify", data, jobId);
+    if (payload) await sendInvitationNotice(deps, payload.invitationId);
+  },
+  "organization.notify.dead": async (deps, data, jobId) => {
+    // Every retry failed: the invitee gets no email, but the invitation still
+    // shows on their organizations page. Recorded for the operator (ids only).
+    const payload = payloadOf(deps, "organization.notify.dead", data, jobId);
+    if (payload)
+      deps.logger.error({
+        event: "organization.invitation_notice_failed",
+        invitationId: payload.invitationId,
+      });
+  },
   "verification.expire": async (deps, data, jobId) => {
     if (payloadOf(deps, "verification.expire", data, jobId))
       await expireVerifications(deps);
@@ -95,6 +110,8 @@ const CONCURRENCY: Record<JobName, number> = {
   "verification.notify": 2,
   "verification.notify.dead": 1,
   "verification.expire": 1,
+  "organization.notify": 2,
+  "organization.notify.dead": 1,
 };
 
 export async function registerHandlers(boss: PgBoss, deps: WorkerDeps) {
