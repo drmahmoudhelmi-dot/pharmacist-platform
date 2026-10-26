@@ -573,14 +573,14 @@
     "inviteEmailLabel": "Invitee's email",
     "inviteEmailHint": "The invitee must sign in with this same address to accept.",
     "inviteRoleLabel": "Role",
-    "roleHint": "Owner: everything. Admin: details, members and recruiters. Recruiter: jobs and applications only.",
+    "roleHint": "Owner: everything, including members and invitations. Recruiter: jobs and applications only.",
     "invite": "Send invitation",
     "invited": "Invitation sent.",
     "pendingHeading": "Unanswered invitations",
     "invitationsEmpty": "No pending invitations.",
     "revoke": "Revoke invitation",
     "revoked": "Invitation revoked.",
-    "recruiterNote": "Details and members are managed by the organization's owners and admins. You will manage jobs once they are available.",
+    "recruiterNote": "Details, members and invitations are managed by the organization's owners. You will manage jobs once they are available.",
     "leaveHeading": "Leave the organization",
     "leave": "Leave organization",
     "leaveConfirm": "Leave this organization? You will need a new invitation to come back.",
@@ -608,7 +608,6 @@
   },
   "OrganizationRoles": {
     "owner": "Owner",
-    "admin": "Admin",
     "recruiter": "Recruiter"
   },
   "OrganizationKinds": {

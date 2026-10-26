@@ -1,6 +1,6 @@
 # ADR-005: Organizations and membership (milestone 1, step 5)
 
-- Status: Accepted
+- Status: Accepted, amended 2026-10-26 (two roles; see the end)
 - Date: 2026-10-26
 - Deciders: principal engineer (delegated authority; product owner informed)
 
@@ -94,3 +94,16 @@ The data export gains `organizations` (name, kind, governorate, address, own rol
 - Organization verification is wanted (pharmacy licence or commercial register, reusing the private upload pipeline from ADR-004).
 - Chains need branches with their own staff.
 - Counsel answers retention (invitation emails, audit rows, closing an organization).
+
+## Amendment (2026-10-26, product owner decision): owner and recruiter only
+
+The product owner chose two roles inside an organization. The `admin` role is removed.
+
+| Capability | owner | recruiter |
+|---|---|---|
+| See the organization and own role | yes | yes |
+| Edit details; see members and invitations; invite, revoke, change roles, remove | yes | no |
+| Leave | yes, unless the last owner | yes |
+| Manage jobs and applications (step 6) | yes | yes |
+
+Every person keeps their own separate account and profile; membership only says what they may do for the organization. Migration `0007_owner_recruiter_roles` turns existing admin memberships and invitations into recruiter (the lower privilege, so nobody gains access) and narrows both role CHECKs. `organization_audit` keeps `admin` in its history and its CHECK still accepts it. The policy gains `jobs.manage` (owner and recruiter) for step 6.

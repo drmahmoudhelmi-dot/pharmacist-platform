@@ -4,9 +4,19 @@
 export const ORGANIZATION_KINDS = ["pharmacy", "chain"] as const;
 export type OrganizationKind = (typeof ORGANIZATION_KINDS)[number];
 
-/** Highest privilege first. */
-export const MEMBER_ROLES = ["owner", "admin", "recruiter"] as const;
+/**
+ * Highest privilege first (product owner decision, 2026-10-26: owner and
+ * recruiter only). Owners manage everything; recruiters manage jobs and
+ * applications.
+ */
+export const MEMBER_ROLES = ["owner", "recruiter"] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+/**
+ * Roles that may appear in organization_audit history. `admin` existed until
+ * migration 0007 and stays readable there; it can no longer be granted.
+ */
+export const AUDIT_ROLES = ["owner", "admin", "recruiter"] as const;
 
 export const INVITATION_STATUSES = [
   "pending",

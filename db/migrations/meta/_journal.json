@@ -50,6 +50,13 @@
       "when": 1793022388667,
       "tag": "0006_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793025114337,
+      "tag": "0007_owner_recruiter_roles",
+      "breakpoints": true
     }
   ]
 }

@@ -289,16 +289,14 @@ describe("creating and reading", () => {
 });
 
 describe("editing", () => {
-  it("lets owners and admins edit, not recruiters", async () => {
+  it("lets owners edit, not recruiters", async () => {
     const owner = await person("edit-owner");
-    const admin = await person("edit-admin");
     const recruiter = await person("edit-recruiter");
     const id = await newOrganization(owner);
-    await join(owner, id, admin, "admin");
     await join(owner, id, recruiter, "recruiter");
 
     expect(
-      await updateOrganization(deps, admin.actor, id, {
+      await updateOrganization(deps, owner.actor, id, {
         kind: "chain",
         name: "صيدليات النور",
         governorateId: "2",
@@ -421,7 +419,7 @@ describe("invitations", () => {
     const owner = await person("mail-owner");
     const id = await newOrganization(owner);
     const nobody = `nobody-${Date.now()}@example.test`;
-    const sent = await invite(owner, id, nobody, "admin");
+    const sent = await invite(owner, id, nobody, "owner");
     expect(sent).toMatchObject({ ok: true });
 
     outbox.length = 0;
@@ -430,7 +428,7 @@ describe("invitations", () => {
     const message = outbox[0];
     expect(message?.to).toBe(nobody);
     expect(message?.subject).toContain("صيدلية النور");
-    expect(message?.text).toContain("مسؤول");
+    expect(message?.text).toContain("مالك");
     expect(message?.text).toContain(`${APP_URL}/organizations`);
     expect(message?.language).toBe("ar");
     // Logs carry ids only.
@@ -453,7 +451,7 @@ describe("invitations", () => {
       owner,
       id,
       `gone-${counter}@example.test`,
-      "admin",
+      "owner",
     );
     if (!english.ok || !revoked.ok) throw new Error("invite failed");
     expect(
@@ -469,74 +467,61 @@ describe("invitations", () => {
     expect(outbox[0]?.text).toContain("Recruiter");
   });
 
-  it("refuses duplicates, existing members and roles the inviter may not grant", async () => {
+  it("refuses duplicates, existing members, the removed admin role and non-owners", async () => {
     const owner = await person("dup-owner");
-    const admin = await person("dup-admin");
     const recruiter = await person("dup-recruiter");
     const id = await newOrganization(owner);
-    await join(owner, id, admin, "admin");
     await join(owner, id, recruiter, "recruiter");
 
     const target = `dup-${counter}@example.test`;
-    expect(await invite(admin, id, target, "recruiter")).toMatchObject({
+    expect(await invite(owner, id, target, "recruiter")).toMatchObject({
       ok: true,
     });
-    expect(await invite(owner, id, target, "admin")).toEqual({
+    expect(await invite(owner, id, target, "owner")).toEqual({
       ok: false,
       error: "alreadyInvited",
     });
-    expect(await invite(owner, id, admin.email, "recruiter")).toEqual({
+    expect(await invite(owner, id, recruiter.email, "recruiter")).toEqual({
       ok: false,
       error: "alreadyMember",
     });
-    for (const role of ["owner", "admin"])
-      expect(await invite(admin, id, `x-${role}@example.test`, role)).toEqual({
-        ok: false,
-        error: "forbidden",
-        fieldErrors: { role: "invalidChoice" },
-      });
-    expect(
-      await invite(recruiter, id, "x-r@example.test", "recruiter"),
-    ).toEqual({ ok: false, error: "forbidden" });
+    expect(await invite(owner, id, `x-admin@example.test`, "admin")).toEqual({
+      ok: false,
+      error: "validation",
+      fieldErrors: { role: "invalidChoice" },
+    });
+    for (const role of ["owner", "recruiter"])
+      expect(
+        await invite(recruiter, id, `x-${role}@example.test`, role),
+      ).toEqual({ ok: false, error: "forbidden" });
   });
 
-  it("lets admins revoke only recruiter invitations, and no one from outside", async () => {
+  it("lets only owners revoke invitations, and no one from outside", async () => {
     const owner = await person("rv-owner");
-    const admin = await person("rv-admin");
+    const recruiter = await person("rv-recruiter");
     const outsider = await person("rv-outsider");
     const id = await newOrganization(owner);
     await newOrganization(outsider, { ...orgForm, name: "صيدلية أخرى" });
-    await join(owner, id, admin, "admin");
-    const forAdmin = await invite(
-      owner,
-      id,
-      `a-${counter}@example.test`,
-      "admin",
-    );
-    const forRecruiter = await invite(
+    await join(owner, id, recruiter, "recruiter");
+    const pending = await invite(
       owner,
       id,
       `r-${counter}@example.test`,
       "recruiter",
     );
-    if (!forAdmin.ok || !forRecruiter.ok) throw new Error("invite failed");
+    if (!pending.ok) throw new Error("invite failed");
 
     expect(
-      await revokeInvitation(deps, admin.actor, id, forAdmin.invitationId),
+      await revokeInvitation(deps, recruiter.actor, id, pending.invitationId),
     ).toEqual({ ok: false, error: "forbidden" });
     expect(
-      await revokeInvitation(
-        deps,
-        outsider.actor,
-        id,
-        forRecruiter.invitationId,
-      ),
+      await revokeInvitation(deps, outsider.actor, id, pending.invitationId),
     ).toEqual({ ok: false, error: "notFound" });
     expect(
-      await revokeInvitation(deps, admin.actor, id, forRecruiter.invitationId),
+      await revokeInvitation(deps, owner.actor, id, pending.invitationId),
     ).toEqual({ ok: true });
     expect(
-      await revokeInvitation(deps, admin.actor, id, forRecruiter.invitationId),
+      await revokeInvitation(deps, owner.actor, id, pending.invitationId),
     ).toEqual({ ok: false, error: "invitationClosed" });
   });
 
@@ -580,7 +565,7 @@ describe("invitations", () => {
       { ...deps, now: () => later },
       owner.actor,
       id,
-      { email: invitee.email, role: "admin" },
+      { email: invitee.email, role: "owner" },
     );
     expect(second).toMatchObject({ ok: true });
   });
@@ -623,7 +608,7 @@ describe("invitations", () => {
     const owner = await person("dec-owner");
     const invitee = await person("dec-invitee");
     const id = await newOrganization(owner);
-    const sent = await invite(owner, id, invitee.email, "admin");
+    const sent = await invite(owner, id, invitee.email, "recruiter");
     if (!sent.ok) throw new Error("invite failed");
     expect(
       await respondToInvitation(
@@ -665,8 +650,8 @@ describe("roles and removal", () => {
       [id],
     );
     const racing = Promise.all([
-      changeMemberRole(deps, a.actor, id, bId, "admin"),
-      changeMemberRole(deps, b.actor, id, aId, "admin"),
+      changeMemberRole(deps, a.actor, id, bId, "recruiter"),
+      changeMemberRole(deps, b.actor, id, aId, "recruiter"),
     ]);
     await new Promise((resolve) => setTimeout(resolve, 300));
     await blocker.query("commit");
@@ -705,7 +690,7 @@ describe("roles and removal", () => {
     const owner = await person("handover");
     const next = await person("next-owner");
     const id = await newOrganization(owner);
-    const nextId = await join(owner, id, next, "admin");
+    const nextId = await join(owner, id, next, "recruiter");
     expect(
       await changeMemberRole(deps, owner.actor, id, nextId, "owner"),
     ).toEqual({ ok: true });
@@ -720,7 +705,7 @@ describe("roles and removal", () => {
         action: "member.role_changed",
         actorId: owner.actor.userId,
         role: "owner",
-        previousRole: "admin",
+        previousRole: "recruiter",
       },
       {
         action: "member.left",
@@ -733,35 +718,29 @@ describe("roles and removal", () => {
 
   it("applies the removal matrix and blocks cross-organization ids", async () => {
     const owner = await person("rm-owner");
-    const admin = await person("rm-admin");
-    const admin2 = await person("rm-admin2");
+    const coOwner = await person("rm-co-owner");
     const recruiter = await person("rm-recruiter");
+    const recruiter2 = await person("rm-recruiter2");
     const otherOwner = await person("rm-other");
     const id = await newOrganization(owner);
     const other = await newOrganization(otherOwner, {
       ...orgForm,
       name: "صيدلية بعيدة",
     });
-    const adminId = await join(owner, id, admin, "admin");
-    const admin2Id = await join(owner, id, admin2, "admin");
+    const coOwnerId = await join(owner, id, coOwner, "owner");
     const recruiterId = await join(owner, id, recruiter, "recruiter");
+    const recruiter2Id = await join(owner, id, recruiter2, "recruiter");
     const ownerId = await memberIdOf(id, owner);
 
-    expect(await removeMember(deps, admin.actor, id, admin2Id)).toEqual({
-      ok: false,
-      error: "forbidden",
-    });
-    expect(await removeMember(deps, admin.actor, id, ownerId)).toEqual({
-      ok: false,
-      error: "forbidden",
-    });
+    // A recruiter removes and re-roles nobody.
+    for (const target of [recruiter2Id, ownerId])
+      expect(await removeMember(deps, recruiter.actor, id, target)).toEqual({
+        ok: false,
+        error: "forbidden",
+      });
     expect(
-      await changeMemberRole(deps, admin.actor, id, recruiterId, "admin"),
+      await changeMemberRole(deps, recruiter.actor, id, recruiter2Id, "owner"),
     ).toEqual({ ok: false, error: "forbidden" });
-    expect(await removeMember(deps, recruiter.actor, id, adminId)).toEqual({
-      ok: false,
-      error: "forbidden",
-    });
     // Another organization's owner, with this organization's member id.
     expect(await removeMember(deps, otherOwner.actor, id, recruiterId)).toEqual(
       { ok: false, error: "notFound" },
@@ -770,35 +749,37 @@ describe("roles and removal", () => {
       await removeMember(deps, otherOwner.actor, other, recruiterId),
     ).toEqual({ ok: false, error: "notFound" });
     expect(
-      await changeMemberRole(deps, otherOwner.actor, other, adminId, "owner"),
+      await changeMemberRole(deps, otherOwner.actor, other, coOwnerId, "owner"),
     ).toEqual({ ok: false, error: "notFound" });
+    // The removed admin role cannot be granted.
+    expect(
+      await changeMemberRole(deps, owner.actor, id, recruiterId, "admin"),
+    ).toEqual({ ok: false, error: "validation" });
 
-    expect(await removeMember(deps, admin.actor, id, recruiterId)).toEqual({
+    expect(await removeMember(deps, owner.actor, id, recruiterId)).toEqual({
       ok: true,
     });
     expect(
       await getOrganizationForMember(h.db, recruiter.actor, id),
     ).toBeNull();
-    expect(await removeMember(deps, owner.actor, id, admin2Id)).toEqual({
+    // An owner removes another owner while one remains.
+    expect(await removeMember(deps, owner.actor, id, coOwnerId)).toEqual({
       ok: true,
     });
     expect(
-      await changeMemberRole(deps, owner.actor, id, adminId, "superuser"),
-    ).toEqual({ ok: false, error: "validation" });
-    expect(
       (await listMembers(h.db, owner.actor, id)).map((m) => m.role),
-    ).toEqual(["owner", "admin"]);
+    ).toEqual(["owner", "recruiter"]);
   });
 
   it("applies a role change on the next request (no cached roles)", async () => {
     const owner = await person("cache-owner");
-    const admin = await person("cache-admin");
+    const second = await person("cache-second");
     const id = await newOrganization(owner);
-    const adminId = await join(owner, id, admin, "admin");
-    expect((await listMembers(h.db, admin.actor, id)).length).toBe(2);
-    await changeMemberRole(deps, owner.actor, id, adminId, "recruiter");
-    expect(await listMembers(h.db, admin.actor, id)).toEqual([]);
-    expect(await updateOrganization(deps, admin.actor, id, orgForm)).toEqual({
+    const secondId = await join(owner, id, second, "owner");
+    expect((await listMembers(h.db, second.actor, id)).length).toBe(2);
+    await changeMemberRole(deps, owner.actor, id, secondId, "recruiter");
+    expect(await listMembers(h.db, second.actor, id)).toEqual([]);
+    expect(await updateOrganization(deps, second.actor, id, orgForm)).toEqual({
       ok: false,
       error: "forbidden",
     });
@@ -834,7 +815,7 @@ describe("audit trail and data rights", () => {
       other.actor,
       id,
       await memberIdOf(id, owner),
-      "admin",
+      "recruiter",
     );
     await h.db.delete(user).where(eq(user.id, other.actor.userId));
     const rows = await auditOf(id);
@@ -848,7 +829,7 @@ describe("audit trail and data rights", () => {
     const member = await person("export-member");
     const id = await newOrganization(owner);
     await join(owner, id, member, "recruiter");
-    await invite(owner, id, `third-${counter}@example.test`, "admin");
+    await invite(owner, id, `third-${counter}@example.test`, "owner");
 
     const own = await exportOwnOrganizations(h.db, member.actor);
     expect(own.memberships).toEqual([

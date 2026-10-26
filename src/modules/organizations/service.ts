@@ -113,7 +113,7 @@ export type MyInvitation = {
   expiresAt: string;
 };
 
-const ROLE_ORDER = sql`case ${organizationMember.role} when 'owner' then 0 when 'admin' then 1 else 2 end`;
+const ROLE_ORDER = sql`case ${organizationMember.role} when 'owner' then 0 else 1 end`;
 
 const narrowRole = (value: string): MemberRole =>
   // The CHECK constraint guarantees it; narrow defensively to the least role.
@@ -256,7 +256,7 @@ export async function getOrganizationForMember(
   };
 }
 
-/** Members with their emails, for owners and admins; empty for anyone else. */
+/** Members with their emails, for owners; empty for anyone else. */
 export async function listMembers(
   db: Db,
   actor: Actor,
@@ -288,7 +288,7 @@ export async function listMembers(
   }));
 }
 
-/** Pending, unexpired invitations, for owners and admins. */
+/** Pending, unexpired invitations, for owners. */
 export async function listPendingInvitations(
   db: Db,
   actor: Actor,
@@ -843,7 +843,7 @@ export async function changeMemberRole(
   });
 }
 
-/** Owners remove anyone else, admins remove recruiters. */
+/** Owners remove anyone else. */
 export async function removeMember(
   deps: OrganizationDeps,
   actor: Actor,

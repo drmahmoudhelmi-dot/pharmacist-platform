@@ -79,18 +79,21 @@ describe("parseOrganization", () => {
 describe("parseInvitation", () => {
   it("lowercases and trims the address", () => {
     expect(
-      parseInvitation({ email: "  Sara.Ahmed@Example.TEST ", role: "admin" }),
+      parseInvitation({
+        email: "  Sara.Ahmed@Example.TEST ",
+        role: "recruiter",
+      }),
     ).toEqual({
       ok: true,
-      data: { email: "sara.ahmed@example.test", role: "admin" },
+      data: { email: "sara.ahmed@example.test", role: "recruiter" },
     });
   });
 
   it.each([
-    [{ email: "", role: "admin" }, { email: "required" }],
-    [{ email: "not-an-email", role: "admin" }, { email: "invalidEmail" }],
+    [{ email: "", role: "recruiter" }, { email: "required" }],
+    [{ email: "not-an-email", role: "recruiter" }, { email: "invalidEmail" }],
     [
-      { email: `${"a".repeat(250)}@x.test`, role: "admin" },
+      { email: `${"a".repeat(250)}@x.test`, role: "recruiter" },
       { email: "invalidEmail" },
     ],
     [{ email: "a@b.test", role: "" }, { role: "required" }],
