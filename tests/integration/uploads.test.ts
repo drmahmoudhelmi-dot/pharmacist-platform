@@ -92,6 +92,7 @@ beforeAll(async () => {
   deps = { db: h.db, store, boss, logger };
   workerDeps = {
     db: h.db,
+    boss,
     store,
     scan: (bytes) => scanBuffer(clamd.config, bytes),
     emailSender: { send: async () => {} },

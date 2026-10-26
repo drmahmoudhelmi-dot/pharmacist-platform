@@ -166,6 +166,7 @@ beforeAll(async () => {
   deps = { db: h.db, boss };
   workerDeps = {
     db: h.db,
+    boss,
     store: { s3: {} as never, bucket: "unused" },
     scan: async () => ({ infected: false }),
     emailSender: { send: async (m) => void outbox.push(m) },

@@ -8,7 +8,7 @@ const inputClass =
 type TextFieldProps = {
   name: string;
   label: string;
-  type?: "email" | "password" | "text" | "tel";
+  type?: "email" | "password" | "text" | "tel" | "date";
   autoComplete?: string;
   inputMode?: "text" | "numeric" | "email" | "tel";
   hint?: string;

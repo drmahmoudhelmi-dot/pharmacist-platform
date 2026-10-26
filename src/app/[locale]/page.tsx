@@ -38,6 +38,9 @@ export default async function HomePage({ params }: Props) {
         </h1>
         <p className="text-lg leading-relaxed text-muted">{t("tagline")}</p>
         <div className="flex flex-wrap gap-3">
+          <Link href="/jobs" className={secondaryLink}>
+            {t("jobs")}
+          </Link>
           {signedIn ? (
             <>
               <Link href="/profile" className={primaryLink}>

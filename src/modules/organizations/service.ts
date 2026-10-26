@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, eq, gt, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   getEmailsOfUsers,
@@ -1002,4 +1002,50 @@ export async function exportOwnOrganizations(
       closedAt: i.closedAt ? i.closedAt.toISOString() : null,
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// For other modules (jobs, ADR-006)
+
+/**
+ * The caller's role in an organization, or null for a non-member, a missing
+ * organization or a malformed id. Pass the caller's transaction so the check
+ * and the write it guards see the same state.
+ */
+export async function getRoleInOrganization(
+  db: Db | Tx,
+  actor: Actor,
+  organizationId: unknown,
+): Promise<MemberRole | null> {
+  if (!actor.emailVerified || !isUuid(organizationId)) return null;
+  return (await membershipOf(db, organizationId, actor.userId))?.role ?? null;
+}
+
+export type PublicOrganization = {
+  id: string;
+  name: string;
+  kind: OrganizationKind;
+  governorateId: number;
+};
+
+/**
+ * What anyone may see about organizations that post jobs: name, kind and
+ * governorate. No address, members or creator.
+ */
+export async function getPublicOrganizations(
+  db: Db,
+  organizationIds: readonly string[],
+): Promise<Map<string, PublicOrganization>> {
+  const ids = [...new Set(organizationIds)].filter(isUuid);
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: organization.id,
+      name: organization.name,
+      kind: organization.kind,
+      governorateId: organization.governorateId,
+    })
+    .from(organization)
+    .where(inArray(organization.id, ids));
+  return new Map(rows.map((r) => [r.id, { ...r, kind: narrowKind(r.kind) }]));
 }

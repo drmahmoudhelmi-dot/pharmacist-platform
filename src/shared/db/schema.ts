@@ -28,3 +28,4 @@ export {
   organizationInvitation,
   organizationMember,
 } from "@/modules/organizations/schema";
+export { job, jobEvent, jobModerationDecision } from "@/modules/jobs/schema";

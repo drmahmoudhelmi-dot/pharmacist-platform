@@ -26,6 +26,9 @@ export default async function StaffPage({ params }: Props) {
       {can(actor, "verification.review") ? (
         <TextLink href="/staff/verification">{t("verificationLink")}</TextLink>
       ) : null}
+      {can(actor, "moderation.access") ? (
+        <TextLink href="/staff/jobs">{t("jobsLink")}</TextLink>
+      ) : null}
     </PageShell>
   );
 }
