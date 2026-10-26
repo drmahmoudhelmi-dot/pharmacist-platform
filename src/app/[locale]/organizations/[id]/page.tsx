@@ -28,7 +28,7 @@ export const dynamicParams = true;
 /**
  * One organization, for its members only. A missing organization, a
  * malformed id and someone else's organization all get the same 404.
- * Owners and admins also see the edit form, members and invitations.
+ * Owners also see the edit form, members and invitations.
  */
 export default async function OrganizationPage({ params }: Props) {
   const { locale, id } = await params;
