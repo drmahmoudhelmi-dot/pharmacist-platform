@@ -32,6 +32,7 @@ const verificationNoticePayload = z.strictObject({
   submissionId: z.uuid(),
   kind: z.enum(["received", "verified", "rejected"]),
 });
+const invitationPayload = z.strictObject({ invitationId: z.uuid() });
 
 export const JOBS = {
   "upload.process.dead": {
@@ -74,6 +75,26 @@ export const JOBS = {
       expireInSeconds: 60,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       deadLetter: "verification.notify.dead",
+    },
+  },
+  "organization.notify.dead": {
+    payload: invitationPayload,
+    queue: DEAD_LETTER,
+  },
+  // Email an invitation to join an organization to the invited address
+  // (src/modules/organizations/jobs.ts). Enqueued in the same transaction as
+  // the invitation; skipped if it is no longer pending when the job runs.
+  "organization.notify": {
+    payload: invitationPayload,
+    queue: {
+      // Same retry profile as verification notices.
+      retryLimit: 8,
+      retryDelay: 30,
+      retryBackoff: true,
+      retryDelayMax: 900,
+      expireInSeconds: 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      deadLetter: "organization.notify.dead",
     },
   },
   // Daily (worker schedule, Africa/Cairo): verified submissions whose card

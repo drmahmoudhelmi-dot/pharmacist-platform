@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { user } from "./schema";
 
@@ -17,4 +17,21 @@ export async function getNotificationAddress(
     .where(eq(user.id, userId))
     .limit(1);
   return row?.emailVerified ? row.email : null;
+}
+
+/**
+ * Addresses of several users, for other modules that show members to each
+ * other (organizations: owners and admins see their members' emails). Users
+ * that no longer exist are absent from the map. Callers must not log it.
+ */
+export async function getEmailsOfUsers(
+  db: Pick<NodePgDatabase, "select">,
+  userIds: readonly string[],
+): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(inArray(user.id, [...userIds]));
+  return new Map(rows.map((r) => [r.id, r.email]));
 }

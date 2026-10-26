@@ -1,8 +1,12 @@
 import "server-only";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { getAccountExport } from "@/modules/identity/export";
 import type { Actor } from "@/modules/identity/policy";
+import {
+  exportOwnOrganizations,
+  type OrganizationsExport,
+} from "@/modules/organizations/service";
 import {
   exportOwnVerification,
   getVerificationBadge,
@@ -17,6 +21,7 @@ import {
   type Specialty,
   type Visibility,
 } from "./constants";
+import { type Governorate, listGovernorates } from "./governorates";
 import { can, canViewProfile } from "./policy";
 import {
   experience,
@@ -36,6 +41,8 @@ import {
   type RawForm,
 } from "./validation";
 
+export { type Governorate, listGovernorates } from "./governorates";
+
 // All database access for profiles (ADR-003). Every function takes the Actor
 // built from the session; owner ids always come from `actor.userId`, never
 // from input. Inputs are validated here, so callers cannot skip it.
@@ -52,13 +59,6 @@ export type WriteResult<K extends string = never> =
 
 const forbidden = { ok: false, error: "forbidden" } as const;
 const notFound = { ok: false, error: "notFound" } as const;
-
-export type Governorate = {
-  id: number;
-  code: string;
-  nameAr: string;
-  nameEn: string;
-};
 
 export type OwnProfile = {
   id: string;
@@ -144,18 +144,6 @@ function toOwnProfile(row: ProfileRow): OwnProfile {
     openToWork: row.openToWork,
     visibility: isVisibility(row.visibility) ? row.visibility : "hidden",
   };
-}
-
-export async function listGovernorates(db: Db): Promise<Governorate[]> {
-  return db
-    .select({
-      id: governorate.id,
-      code: governorate.code,
-      nameAr: governorate.nameAr,
-      nameEn: governorate.nameEn,
-    })
-    .from(governorate)
-    .orderBy(asc(governorate.id));
 }
 
 // ---------------------------------------------------------------------------
@@ -439,11 +427,13 @@ export type DataExport = {
   experience: Omit<ExperienceItem, "id">[];
   /** Status, claims and masked ID per submission; never the encrypted ID. */
   verification: VerificationExportItem[];
+  /** Own memberships and invitations received; no other member's data. */
+  organizations: OrganizationsExport;
 };
 
 /**
- * Everything the platform holds about the caller from identity, profiles and
- * verification (masked national ID, never the encrypted value or the photos).
+ * Everything the platform holds about the caller from identity, profiles,
+ * verification and organizations (masked national ID, never the encrypted value or the photos).
  * Never includes password hashes, session tokens, TOTP secrets or backup
  * codes (identity's export selects explicit columns only).
  */
@@ -454,7 +444,7 @@ export async function exportOwnData(
 ): Promise<DataExport | null> {
   if (!can(actor, "professionalDetails.read", { ownerId: actor.userId }))
     return null;
-  const [account, own, details, items, governorates, verification] =
+  const [account, own, details, items, governorates, verification, orgs] =
     await Promise.all([
       getAccountExport(db, actor.userId),
       getOwnProfile(db, actor),
@@ -462,6 +452,7 @@ export async function exportOwnData(
       listOwnExperience(db, actor),
       listGovernorates(db),
       exportOwnVerification(db, actor),
+      exportOwnOrganizations(db, actor),
     ]);
   let exportedProfile: DataExport["profile"] = null;
   if (own) {
@@ -488,5 +479,6 @@ export async function exportOwnData(
       endMonth,
     })),
     verification: verification ?? [],
+    organizations: orgs,
   };
 }

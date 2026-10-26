@@ -87,6 +87,16 @@ export default async function AccountPage({ params, searchParams }: Props) {
           </section>
           <section
             className="flex flex-col gap-2"
+            aria-labelledby="organizations-heading"
+          >
+            <h2 id="organizations-heading" className="text-lg font-semibold">
+              {t("organizationsHeading")}
+            </h2>
+            <p className="text-muted">{t("organizationsExplain")}</p>
+            <TextLink href="/organizations">{t("organizationsLink")}</TextLink>
+          </section>
+          <section
+            className="flex flex-col gap-2"
             aria-labelledby="data-heading"
           >
             <h2 id="data-heading" className="text-lg font-semibold">

@@ -6,7 +6,8 @@
     "signIn": "Sign in",
     "signUp": "Create account",
     "myProfile": "My profile",
-    "myAccount": "My account"
+    "myAccount": "My account",
+    "myOrganizations": "My organizations"
   },
   "Meta": {
     "title": "Pharmacist Platform",
@@ -174,7 +175,10 @@
     "downloadData": "Download my data",
     "verificationHeading": "Professional verification",
     "verificationExplain": "Verify that you are a pharmacist or pharmacy student to show a “Verified” badge on your profile.",
-    "verificationLink": "Verify my account"
+    "verificationLink": "Verify my account",
+    "organizationsHeading": "Organizations",
+    "organizationsExplain": "Your pharmacy or chain, its members and invitations.",
+    "organizationsLink": "My organizations"
   },
   "Staff": {
     "title": "Staff area",
@@ -518,6 +522,108 @@
       "not_pending": "This request has already been decided.",
       "validation": "Check the highlighted fields and try again.",
       "unavailable": "The service is unavailable right now. Try again in a few minutes."
+    }
+  },
+  "Organizations": {
+    "title": "My organizations",
+    "intro": "Create a page for your pharmacy or chain and invite the people who help you run it and hire for it. Jobs will be posted under the organization's name later.",
+    "myInvitationsHeading": "Invitations waiting for you",
+    "invitationText": "Invitation to join as {role}:",
+    "accept": "Accept invitation",
+    "decline": "Decline",
+    "accepted": "You accepted the invitation and are now a member.",
+    "declined": "You declined the invitation.",
+    "expiresOn": "Valid until {date}",
+    "mineHeading": "Organizations I belong to",
+    "empty": "You are not a member of any organization yet. Create one or accept an invitation.",
+    "createHeading": "Create an organization",
+    "createExplain": "You will be the owner. You can change the details later.",
+    "kindLegend": "Type",
+    "kindHints": {
+      "pharmacy": "A single pharmacy.",
+      "chain": "Several branches under one name."
+    },
+    "nameLabel": "Organization name",
+    "nameHint": "As shown on the sign, 2 to 120 characters.",
+    "governorateLabel": "Governorate",
+    "choose": "Choose",
+    "addressLabel": "Address",
+    "addressHint": "Optional. The main branch's address, not your home address.",
+    "create": "Create organization",
+    "save": "Save details",
+    "saving": "Saving…",
+    "created": "Organization created.",
+    "saved": "Organization details saved.",
+    "detailsHeading": "Organization details",
+    "myRoleLabel": "My role",
+    "notVerifiedNote": "Details as entered by the organization's members; not reviewed by the platform.",
+    "editHeading": "Edit details",
+    "membersHeading": "Members",
+    "you": "you",
+    "changeRoleLabel": "This member's role",
+    "changeRole": "Change role",
+    "roleChanged": "Role changed.",
+    "remove": "Remove from organization",
+    "removeConfirm": "Remove this member? They will lose access to the organization.",
+    "confirmRemove": "Yes, remove",
+    "removed": "Member removed.",
+    "cancel": "Cancel",
+    "inviteHeading": "Invite a member",
+    "inviteExplain": "The invitation appears to the owner of this address once they sign in with it, and we email them about it. Invitations expire after 7 days.",
+    "inviteEmailLabel": "Invitee's email",
+    "inviteEmailHint": "The invitee must sign in with this same address to accept.",
+    "inviteRoleLabel": "Role",
+    "roleHint": "Owner: everything. Admin: details, members and recruiters. Recruiter: jobs and applications only.",
+    "invite": "Send invitation",
+    "invited": "Invitation sent.",
+    "pendingHeading": "Unanswered invitations",
+    "invitationsEmpty": "No pending invitations.",
+    "revoke": "Revoke invitation",
+    "revoked": "Invitation revoked.",
+    "recruiterNote": "Details and members are managed by the organization's owners and admins. You will manage jobs once they are available.",
+    "leaveHeading": "Leave the organization",
+    "leave": "Leave organization",
+    "leaveConfirm": "Leave this organization? You will need a new invitation to come back.",
+    "confirmLeave": "Yes, leave",
+    "left": "You left the organization.",
+    "backToList": "All my organizations",
+    "accountLink": "Back to my account"
+  },
+  "OrganizationErrors": {
+    "required": "This field is required.",
+    "tooShort": "The text is too short.",
+    "tooLong": "The text is longer than allowed.",
+    "invalidChoice": "Choose a value from the list.",
+    "invalidEmail": "Enter a valid email address, such as name@example.com.",
+    "validation": "Check the highlighted fields and try again.",
+    "forbidden": "You do not have permission for this action.",
+    "notFound": "We could not find this item; it may have changed or been removed. Refresh the page.",
+    "limitReached": "You have reached the limit. Try again later or contact support.",
+    "lastOwner": "An organization needs at least one owner. Make another member an owner first.",
+    "alreadyMember": "This address already belongs to a member.",
+    "alreadyInvited": "There is already a pending invitation for this address.",
+    "invitationClosed": "This invitation is no longer available. It may have expired or been revoked.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your internet connection and try again."
+  },
+  "OrganizationRoles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "recruiter": "Recruiter"
+  },
+  "OrganizationKinds": {
+    "pharmacy": "Pharmacy",
+    "chain": "Pharmacy chain"
+  },
+  "OrganizationEmail": {
+    "days": "7",
+    "invited": {
+      "subject": "Invitation to join {organization} - Pharmacist Platform",
+      "heading": "You have been invited to an organization",
+      "body": "You were invited to join “{organization}” as {role} on the Pharmacist Platform.",
+      "expiry": "Sign in with this email address to accept or decline. The invitation is valid for {days} days.",
+      "action": "View invitation",
+      "note": "If you did not expect this invitation, ignore this email; nothing changes in your account."
     }
   }
 }
