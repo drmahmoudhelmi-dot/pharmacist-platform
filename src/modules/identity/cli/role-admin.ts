@@ -1,4 +1,5 @@
-// Operator CLI for staff roles (ADR-002), until the audited admin UI (step 7):
+// Operator CLI for staff roles (ADR-002); the admin UI at /staff/roles is the
+// everyday path (ADR-008). Changes here are audited with actor kind operator:
 //   pnpm admin:grant-role <email> <role>
 //   pnpm admin:revoke-role <email> <role>
 // The user must exist and have a verified email. Any change revokes all of the
@@ -17,6 +18,10 @@ const MESSAGES = {
   invalid_role: `Unknown role. Allowed: ${STAFF_ROLES.join(", ")}.`,
   user_not_found: "No user with that email.",
   email_not_verified: "The user has not verified their email yet.",
+  // Staff-only rules; the operator CLI is not bound by them.
+  self_change: "Staff cannot change their own roles.",
+  last_super_admin: "At least one super_admin must remain.",
+  actor_not_super_admin: "Only a current super_admin may change roles.",
 } as const;
 
 async function main(argv: string[]): Promise<number> {
@@ -39,6 +44,9 @@ async function main(argv: string[]): Promise<number> {
       case "invalid_role":
       case "user_not_found":
       case "email_not_verified":
+      case "self_change":
+      case "last_super_admin":
+      case "actor_not_super_admin":
         // Raw arguments are not logged: a swapped argument could be an email.
         logger.warn({
           event: `role.${change}.rejected`,

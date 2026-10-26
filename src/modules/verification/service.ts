@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
+import { recordAudit } from "@/modules/admin/audit";
 import type { Actor } from "@/modules/identity/policy";
 import {
   findOwnUploads,
@@ -835,6 +836,7 @@ export async function decide(
   reviewer: Actor,
   submissionId: unknown,
   raw: RawForm,
+  ip: string | null = null,
 ): Promise<DecideResult> {
   if (!can(reviewer, "verification.queue"))
     return { ok: false, error: "forbidden" };
@@ -868,6 +870,16 @@ export async function decide(
         })
       )
         return { ok: false, error: "forbidden" };
+      // The admin audit log (ADR-008), in the decision's transaction.
+      await recordAudit(tx, {
+        actorId: reviewer.userId,
+        actorKind: "staff",
+        action: "verification.decided",
+        targetType: "verification_submission",
+        targetId: submissionId,
+        detail: { decision, reasonCode },
+        ip,
+      });
       await tx.insert(verificationDecision).values({
         submissionId,
         reviewerId: reviewer.userId,

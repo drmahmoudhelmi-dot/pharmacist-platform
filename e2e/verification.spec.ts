@@ -8,9 +8,9 @@ import {
   test,
 } from "@playwright/test";
 import sharp from "sharp";
-import { totpFromSecret } from "../tests/integration/helpers/totp";
 import {
   expectNoHorizontalScroll,
+  freshTotp,
   PASSWORD,
   signIn,
   signUpAndVerify,
@@ -96,7 +96,7 @@ async function becomeReviewer(page: Page, email: string) {
   await page.getByLabel("أكّد كلمة المرور للمتابعة").fill(PASSWORD);
   await page.getByRole("button", { name: "متابعة" }).click();
   const secret = await page.getByTestId("totp-secret").innerText();
-  await page.getByLabel("رمز التحقق").fill(totpFromSecret(secret));
+  await page.getByLabel("رمز التحقق").fill(await freshTotp(secret));
   await page.getByRole("button", { name: "إكمال التفعيل" }).click();
   await expect(page.getByTestId("totp-state")).toHaveText("مفعّل");
   const cli = await exec("pnpm", [
@@ -108,7 +108,7 @@ async function becomeReviewer(page: Page, email: string) {
   expect(cli.stdout).toContain("Role granted");
   await page.goto("/sign-in");
   await signIn(page, email);
-  await page.getByLabel("رمز التحقق").fill(totpFromSecret(secret));
+  await page.getByLabel("رمز التحقق").fill(await freshTotp(secret));
   await page.getByRole("button", { name: "تحقق" }).click();
   await expect(page).toHaveURL(/\/account$/);
 }

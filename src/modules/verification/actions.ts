@@ -96,6 +96,7 @@ export async function decideAction(
       actor,
       submissionId,
       formDataToRaw(form),
+      await requestIp(),
     );
   } catch (error) {
     return failed("verification.decide.failed", actor.userId, error);

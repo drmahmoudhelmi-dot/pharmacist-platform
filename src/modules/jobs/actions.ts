@@ -1,5 +1,7 @@
 "use server";
 
+import { headers } from "next/headers";
+import { auditIp } from "@/modules/admin/audit";
 import { requireActor } from "@/modules/identity/policy";
 import { getDb } from "@/shared/db/client";
 import { getJobClient } from "@/shared/jobs/client";
@@ -202,7 +204,13 @@ export async function decideJobAction(
 ): Promise<ActionResult<DecisionField>> {
   const actor = await requireActor();
   return run("decided", { userId: actor.userId, jobId }, async () =>
-    decideJob(await deps(), actor, jobId, formDataToRaw(form)),
+    decideJob(
+      await deps(),
+      actor,
+      jobId,
+      formDataToRaw(form),
+      auditIp((await headers()).get("x-forwarded-for")),
+    ),
   );
 }
 

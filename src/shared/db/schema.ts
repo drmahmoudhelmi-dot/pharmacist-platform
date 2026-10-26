@@ -35,3 +35,4 @@ export {
   jobEvent,
   jobModerationDecision,
 } from "@/modules/jobs/schema";
+export { adminAudit } from "@/modules/admin/schema";

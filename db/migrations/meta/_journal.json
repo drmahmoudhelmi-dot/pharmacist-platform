@@ -71,6 +71,13 @@
       "when": 1793030034239,
       "tag": "0009_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793032633845,
+      "tag": "0010_admin_audit",
+      "breakpoints": true
     }
   ]
 }
