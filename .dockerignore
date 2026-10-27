@@ -1,0 +1,20 @@
+# Keep the build context small and free of secrets.
+.git
+.github
+node_modules
+.next
+out
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+staging.env
+.DS_Store
+# Not needed in any image
+e2e
+tests
+docs
+.claude

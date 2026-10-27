@@ -1,0 +1,145 @@
+# Staging rehearsal: the three application images plus Postgres 18, MinIO,
+# Mailpit (stand-in for an email provider) and clamd. Runnable locally.
+#
+#   cp staging.env.example staging.env        # staging.env is git-ignored
+#   docker compose -f docker-compose.staging.yml --env-file staging.env up -d --build --wait
+#   docker compose -f docker-compose.staging.yml --env-file staging.env down   # keeps volumes
+#
+# All configuration comes from staging.env (see staging.env.example). Its own
+# Compose project name keeps it apart from the local dev stack (docker-compose.yml).
+# Only the web app, the Mailpit UI and the MinIO API are published to the host.
+name: pharmacist-platform-staging
+
+x-app-env: &app-env
+  env_file: staging.env
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      MINIO_DEFAULT_BUCKETS: ""
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+    volumes:
+      - minio-data:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot: creates the buckets. The private one stays private and gets
+  # versioning (required for the private documents, see CLAUDE.md section 4).
+  minio-init:
+    image: bitnamilegacy/minio-client:2025.7.21-debian-12-r3
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET}
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY_ID" "$$S3_SECRET_ACCESS_KEY"
+        mc mb --ignore-existing "local/$$S3_PRIVATE_BUCKET"
+        mc mb --ignore-existing "local/$$S3_PUBLIC_BUCKET"
+        mc anonymous set none "local/$$S3_PRIVATE_BUCKET"
+        mc anonymous set download "local/$$S3_PUBLIC_BUCKET"
+        mc version enable "local/$$S3_PRIVATE_BUCKET"
+
+  # Same dependency trick as the dev stack: a dependent makes `up --wait` accept
+  # the one-shot minio-init exiting cleanly.
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Loads about 1-1.5 GB of signatures; healthy after about 20-60 s.
+  clamav:
+    image: clamav/clamav:1.5.4
+    environment:
+      CLAMAV_NO_FRESHCLAMD: ${CLAMAV_NO_FRESHCLAMD:-true}
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 180s
+
+  # Runs to completion; web and worker start only after it exits 0.
+  migrate:
+    <<: *app-env
+    image: pharmacist-platform-migrate:staging
+    build:
+      context: .
+      target: migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    <<: *app-env
+    image: pharmacist-platform-web:staging
+    build:
+      context: .
+      target: web
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    restart: unless-stopped
+
+  worker:
+    <<: *app-env
+    image: pharmacist-platform-worker:staging
+    build:
+      context: .
+      target: worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      clamav:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 40s
+
+volumes:
+  postgres-data:
+  minio-data:

@@ -91,3 +91,105 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  # Builds the production images and smoke-tests them against throwaway
+  # services. Independent of the other jobs. Placeholder values only.
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: pharma
+          POSTGRES_PASSWORD: ci-throwaway
+          POSTGRES_DB: pharma
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pharma -d pharma"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # Throwaway values for the smoke test; none of them is a secret.
+      DATABASE_URL: postgres://pharma:ci-throwaway@127.0.0.1:5432/pharma
+      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: ci-throwaway
+      S3_SECRET_ACCESS_KEY: ci-throwaway-secret
+      S3_PRIVATE_BUCKET: pharma-private
+      S3_PUBLIC_BUCKET: pharma-public
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      EMAIL_FROM: no-reply@ci.invalid
+      APP_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-throwaway-secret-at-least-32-characters-long
+      AUTH_BREACHED_PASSWORD_CHECK: "false"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Build web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: web
+          load: true
+          tags: pharma-web:ci
+          cache-from: type=gha,scope=image-web
+          cache-to: type=gha,mode=max,scope=image-web
+      - name: Build worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: worker
+          load: true
+          tags: pharma-worker:ci
+          cache-from: type=gha,scope=image-worker
+          cache-to: type=gha,mode=max,scope=image-worker
+      # The migrate target is the worker stage with another command, so its
+      # layers come from the cache above.
+      - name: Build migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrate
+          load: true
+          tags: pharma-migrate:ci
+          cache-from: type=gha,scope=image-worker
+      # The readiness check needs the private bucket: a throwaway MinIO.
+      - name: Start MinIO and create the bucket
+        run: |
+          docker run -d --name minio --network host \
+            -e MINIO_ROOT_USER="$S3_ACCESS_KEY_ID" \
+            -e MINIO_ROOT_PASSWORD="$S3_SECRET_ACCESS_KEY" \
+            bitnamilegacy/minio:2025.7.23-debian-12-r5
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:9000/minio/health/live && break
+            sleep 2
+          done
+          docker run --rm --network host --entrypoint /bin/sh \
+            -e S3_ACCESS_KEY_ID -e S3_SECRET_ACCESS_KEY -e S3_PRIVATE_BUCKET \
+            bitnamilegacy/minio-client:2025.7.21-debian-12-r3 -c \
+            'mc alias set local http://127.0.0.1:9000 "$S3_ACCESS_KEY_ID" "$S3_SECRET_ACCESS_KEY" && mc mb --ignore-existing "local/$S3_PRIVATE_BUCKET"'
+      - name: Run migrations
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL pharma-migrate:ci
+      - name: Start web and check health and readiness
+        run: |
+          docker run -d --name web --network host \
+            -e DATABASE_URL -e S3_ENDPOINT -e S3_REGION -e S3_ACCESS_KEY_ID \
+            -e S3_SECRET_ACCESS_KEY -e S3_PRIVATE_BUCKET -e S3_PUBLIC_BUCKET \
+            -e SMTP_HOST -e SMTP_PORT -e EMAIL_FROM -e APP_URL \
+            -e BETTER_AUTH_SECRET -e AUTH_BREACHED_PASSWORD_CHECK \
+            pharma-web:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3000/api/health && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/api/health
+          curl -fsS http://127.0.0.1:3000/api/ready
+      - name: Web logs on failure
+        if: failure()
+        run: docker logs web

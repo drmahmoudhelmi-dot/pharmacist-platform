@@ -10,3 +10,6 @@ test-results
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
+
+# Staging rehearsal secrets (copy of staging.env.example)
+staging.env
