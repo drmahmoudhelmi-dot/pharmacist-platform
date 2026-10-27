@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { recordAudit } from "@/modules/admin/audit";
+import { getEmailsOfUsers } from "@/modules/identity/contact";
 import type { Actor } from "@/modules/identity/policy";
 import {
   getPublicOrganizations,
@@ -34,13 +35,25 @@ import {
   isJobCategory,
   isJobStatus,
   isRejectReason,
+  isRemoveReason,
+  isReportReason,
   type JobCategory,
   type JobStatus,
   LIMITS,
   type RejectReason,
+  type RemoveReason,
+  REPORT_LIMITS,
+  type ReportReason,
+  type ReportStatus,
 } from "./constants";
 import { can, type JobAction } from "./policy";
-import { job, jobEvent, jobModerationDecision } from "./schema";
+import {
+  job,
+  jobApplication,
+  jobEvent,
+  jobModerationDecision,
+  jobReport,
+} from "./schema";
 import {
   type DecisionField,
   type FieldErrors,
@@ -49,8 +62,12 @@ import {
   type JobInput,
   parseDecision,
   parseJob,
+  parseRemoval,
+  parseReport,
   parseSearch,
   type RawForm,
+  type RemovalField,
+  type ReportField,
 } from "./validation";
 
 // All web-side database access for jobs (ADR-006). Every employer action
@@ -67,7 +84,13 @@ export type JobsDeps = { db: Db; boss: PgBoss; now?: () => Date };
 const nowOf = (deps: { now?: () => Date }) => deps.now?.() ?? new Date();
 
 export type JobError =
-  "forbidden" | "validation" | "notFound" | "invalidState" | "limitReached";
+  | "forbidden"
+  | "validation"
+  | "notFound"
+  | "invalidState"
+  | "limitReached"
+  // A report: this account already has an open report on the job.
+  | "duplicate";
 
 export type WriteResult<K extends string = never, T = object> =
   | ({ ok: true } & T)
@@ -140,6 +163,8 @@ export type MemberJobView = JobContent & {
   expiresAt: string | null;
   /** Latest moderation rejection, shown to the employer (no note). */
   rejection: { reasonCode: RejectReason; decidedAt: string } | null;
+  /** The takedown of a removed job (ADR-009), shown to the employer (no note). */
+  removal: { reasonCode: RemoveReason; decidedAt: string } | null;
   permissions: JobPermissions;
 };
 
@@ -485,10 +510,31 @@ export async function copyJob(
 // Employer: transitions
 
 /**
- * Moderation is needed for an organization's first public job and whenever
- * the submitting member is not verified (ADR-006).
+ * Moderation is needed for an organization's first public job, whenever the
+ * submitting member is not verified (ADR-006), and for every submission of
+ * an organization that had a job taken down recently (ADR-009).
  */
-async function needsModeration(tx: Tx, actor: Actor, organizationId: string) {
+async function needsModeration(
+  tx: Tx,
+  actor: Actor,
+  organizationId: string,
+  now: Date,
+) {
+  const [removed] = await tx
+    .select({ n: count() })
+    .from(jobModerationDecision)
+    .innerJoin(job, eq(job.id, jobModerationDecision.jobId))
+    .where(
+      and(
+        eq(job.organizationId, organizationId),
+        eq(jobModerationDecision.decision, "removed"),
+        gt(
+          jobModerationDecision.decidedAt,
+          new Date(now.getTime() - LIMITS.removalLookbackDays * DAY),
+        ),
+      ),
+    );
+  if ((removed?.n ?? 0) > 0) return true;
   const [published] = await tx
     .select({ n: count() })
     .from(job)
@@ -562,7 +608,7 @@ export async function submitJob(
     // A job a moderator rejected always goes back to review (ADR-006).
     const review =
       current.status === "rejected" ||
-      (await needsModeration(tx, actor, current.organizationId));
+      (await needsModeration(tx, actor, current.organizationId, now));
     const to = review ? "pending_review" : "published";
     await tx
       .update(job)
@@ -746,6 +792,15 @@ export async function getJobForMember(
       status === "rejected" &&
       rejection?.decision === "rejected" &&
       isRejectReason(rejection.reasonCode)
+        ? {
+            reasonCode: rejection.reasonCode,
+            decidedAt: rejection.decidedAt.toISOString(),
+          }
+        : null,
+    removal:
+      status === "removed" &&
+      rejection?.decision === "removed" &&
+      isRemoveReason(rejection.reasonCode)
         ? {
             reasonCode: rejection.reasonCode,
             decidedAt: rejection.decidedAt.toISOString(),
@@ -1069,6 +1124,419 @@ export async function decideJob(
       deps.boss,
       "jobs.notify",
       { jobId: row.id, kind: decision },
+      { tx },
+    );
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Takedown and reports (ADR-009)
+
+/** Whether the caller may report a job, for the job page. */
+export type ReportState = "available" | "reported" | "unavailable";
+
+export async function getReportState(
+  db: Db,
+  actor: Actor | null,
+  jobId: unknown,
+  now: Date = new Date(),
+): Promise<ReportState> {
+  if (!actor || !isUuid(jobId)) return "unavailable";
+  const [row] = await db
+    .select({ organizationId: job.organizationId, status: job.status })
+    .from(job)
+    .where(and(eq(job.id, jobId), isLive(now)))
+    .limit(1);
+  if (!row) return "unavailable";
+  const role = await getRoleInOrganization(db, actor, row.organizationId);
+  if (
+    !can(actor, "job.report", { actorRole: role, status: statusOf(row.status) })
+  )
+    return "unavailable";
+  const [open] = await db
+    .select({ id: jobReport.id })
+    .from(jobReport)
+    .where(
+      and(
+        eq(jobReport.jobId, jobId),
+        eq(jobReport.reporterId, actor.userId),
+        eq(jobReport.status, "open"),
+      ),
+    )
+    .limit(1);
+  return open ? "reported" : "available";
+}
+
+/**
+ * A member reports a live job of an organization they do not belong to.
+ * One open report per account and job; `REPORT_LIMITS.perReporterPerDay`
+ * per account. The reporter is never shown to the employer.
+ */
+export async function reportJob(
+  deps: JobsDeps,
+  actor: Actor,
+  jobId: unknown,
+  raw: RawForm,
+): Promise<WriteResult<ReportField>> {
+  if (!isUuid(jobId)) return fail("notFound");
+  const parsed = parseReport(raw);
+  if (!parsed.ok)
+    return { ok: false, error: "validation", fieldErrors: parsed.fieldErrors };
+  const now = nowOf(deps);
+  return deps.db.transaction(async (tx) => {
+    // Serializes one reporter's reports, so the daily limit is exact.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`jobs:report:${actor.userId}`}, 0))`,
+    );
+    const [row] = await tx
+      .select({ organizationId: job.organizationId, status: job.status })
+      .from(job)
+      .where(and(eq(job.id, jobId), isLive(now)))
+      .for("share");
+    if (!row) return fail("notFound");
+    const role = await getRoleInOrganization(tx, actor, row.organizationId);
+    if (
+      !can(actor, "job.report", {
+        actorRole: role,
+        status: statusOf(row.status),
+      })
+    )
+      return role ? fail("forbidden") : fail("notFound");
+    const [open] = await tx
+      .select({ id: jobReport.id })
+      .from(jobReport)
+      .where(
+        and(
+          eq(jobReport.jobId, jobId),
+          eq(jobReport.reporterId, actor.userId),
+          eq(jobReport.status, "open"),
+        ),
+      )
+      .limit(1);
+    if (open) return fail("duplicate");
+    const [recent] = await tx
+      .select({ n: count() })
+      .from(jobReport)
+      .where(
+        and(
+          eq(jobReport.reporterId, actor.userId),
+          gt(jobReport.createdAt, new Date(now.getTime() - DAY)),
+        ),
+      );
+    if ((recent?.n ?? 0) >= REPORT_LIMITS.perReporterPerDay)
+      return fail("limitReached");
+    await tx.insert(jobReport).values({
+      jobId,
+      reporterId: actor.userId,
+      reasonCode: parsed.data.reasonCode,
+      details: parsed.data.details,
+      createdAt: now,
+    });
+    return { ok: true as const };
+  });
+}
+
+export type ReportQueueItem = {
+  jobId: string;
+  title: string;
+  organizationName: string;
+  status: JobStatus;
+  openReports: number;
+  reasons: ReportReason[];
+  oldestReportAt: string;
+};
+
+/** Jobs with open reports, oldest report first, for moderators. */
+export async function listReportQueue(
+  db: Db,
+  moderator: Actor,
+): Promise<ReportQueueItem[]> {
+  if (!can(moderator, "job.reviewQueue")) return [];
+  const rows = await db
+    .select({
+      jobId: jobReport.jobId,
+      n: count(),
+      oldest: sql<Date>`min(${jobReport.createdAt})`.mapWith(
+        (v: string | Date) => new Date(v),
+      ),
+      reasons: sql<string[]>`array_agg(distinct ${jobReport.reasonCode})`,
+    })
+    .from(jobReport)
+    .where(eq(jobReport.status, "open"))
+    .groupBy(jobReport.jobId)
+    .orderBy(sql`min(${jobReport.createdAt})`, asc(jobReport.jobId))
+    // Scan more than a page: jobs this moderator may not act on are
+    // dropped below, and must not crowd out the rest.
+    .limit(REPORT_LIMITS.queueSize * 5);
+  if (rows.length === 0) return [];
+  const jobs = await db
+    .select({
+      id: job.id,
+      title: job.title,
+      status: job.status,
+      organizationId: job.organizationId,
+      createdBy: job.createdBy,
+      submittedBy: job.submittedBy,
+    })
+    .from(job)
+    .where(
+      inArray(
+        job.id,
+        rows.map((r) => r.jobId),
+      ),
+    );
+  const byId = new Map(jobs.map((j) => [j.id, j]));
+  const actionable = (
+    await Promise.all(
+      rows.map(async (r) => {
+        const j = byId.get(r.jobId);
+        if (!j || isOwnJob(moderator, j)) return null;
+        if (await getRoleInOrganization(db, moderator, j.organizationId))
+          return null;
+        return { r, j };
+      }),
+    )
+  ).filter((x) => x !== null);
+  const orgs = await getPublicOrganizations(
+    db,
+    actionable.map((x) => x.j.organizationId),
+  );
+  return actionable.slice(0, REPORT_LIMITS.queueSize).map(({ r, j }) => ({
+    jobId: j.id,
+    title: j.title,
+    organizationName: orgs.get(j.organizationId)?.name ?? "",
+    status: statusOf(j.status),
+    openReports: r.n,
+    reasons: r.reasons.filter(isReportReason),
+    oldestReportAt: r.oldest.toISOString(),
+  }));
+}
+
+export type JobReportView = {
+  id: string;
+  reasonCode: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  createdAt: string;
+  /** Moderators only; null when the reporter's account is gone. */
+  reporterEmail: string | null;
+};
+
+export type ModerationView = PublicJobView & {
+  status: JobStatus;
+  reports: JobReportView[];
+  canRemove: boolean;
+  canDismiss: boolean;
+};
+
+/**
+ * A job with its reports (newest first, up to 50) for a moderator outside
+ * its organization who neither created nor submitted it; null otherwise.
+ */
+export async function getJobForModeration(
+  db: Db,
+  moderator: Actor,
+  jobId: unknown,
+): Promise<ModerationView | null> {
+  if (!can(moderator, "job.reviewQueue") || !isUuid(jobId)) return null;
+  const [row] = await db
+    .select({ ...publicColumns, status: job.status, createdBy: job.createdBy })
+    .from(job)
+    .where(eq(job.id, jobId))
+    .limit(1);
+  if (!row || isOwnJob(moderator, row)) return null;
+  if (await getRoleInOrganization(db, moderator, row.organizationId))
+    return null;
+  const status = statusOf(row.status);
+  const reports = await db
+    .select()
+    .from(jobReport)
+    .where(eq(jobReport.jobId, row.id))
+    .orderBy(desc(jobReport.createdAt), desc(jobReport.id))
+    .limit(50);
+  const emails = await getEmailsOfUsers(db, [
+    ...new Set(reports.map((r) => r.reporterId).filter(isUuid)),
+  ]);
+  const [view] = await toPublicViews(db, [
+    {
+      ...row,
+      publishedAt: row.publishedAt ?? new Date(0),
+      expiresAt: row.expiresAt ?? new Date(0),
+    },
+  ]);
+  if (!view) return null;
+  return {
+    ...view,
+    status,
+    reports: reports.flatMap((r) =>
+      isReportReason(r.reasonCode)
+        ? [
+            {
+              id: r.id,
+              reasonCode: r.reasonCode,
+              details: r.details,
+              status: r.status,
+              createdAt: r.createdAt.toISOString(),
+              reporterEmail: r.reporterId
+                ? (emails.get(r.reporterId) ?? null)
+                : null,
+            },
+          ]
+        : [],
+    ),
+    canRemove: can(moderator, "job.takedown", { actorRole: null, status }),
+    canDismiss: reports.some((r) => r.status === "open"),
+  };
+}
+
+/** Locks a job for a moderator's action and applies the separation of duties. */
+async function lockForModerator(tx: Tx, moderator: Actor, jobId: string) {
+  const [row] = await tx
+    .select({
+      id: job.id,
+      organizationId: job.organizationId,
+      status: job.status,
+      createdBy: job.createdBy,
+      submittedBy: job.submittedBy,
+    })
+    .from(job)
+    .where(eq(job.id, jobId))
+    .for("update");
+  if (!row) return { ok: false as const, error: "notFound" as const };
+  const role = await getRoleInOrganization(tx, moderator, row.organizationId);
+  if (role || isOwnJob(moderator, row))
+    return { ok: false as const, error: "forbidden" as const };
+  return { ok: true as const, row, status: statusOf(row.status) };
+}
+
+/** Resolves every open report of a job; returns how many. */
+async function resolveReports(
+  tx: Tx,
+  jobId: string,
+  status: "actioned" | "dismissed",
+  moderatorId: string,
+  now: Date,
+) {
+  const resolved = await tx
+    .update(jobReport)
+    .set({ status, resolvedAt: now, resolvedBy: moderatorId })
+    .where(and(eq(jobReport.jobId, jobId), eq(jobReport.status, "open")))
+    .returning({ id: jobReport.id });
+  return resolved.length;
+}
+
+/** A moderator dismisses all open reports of a job (the job stays). */
+export async function dismissReports(
+  deps: JobsDeps,
+  moderator: Actor,
+  jobId: unknown,
+  ip: string | null = null,
+): Promise<WriteResult> {
+  if (!can(moderator, "job.reviewQueue")) return fail("forbidden");
+  if (!isUuid(jobId)) return fail("notFound");
+  const now = nowOf(deps);
+  return deps.db.transaction(async (tx) => {
+    const locked = await lockForModerator(tx, moderator, jobId);
+    if (!locked.ok) return fail(locked.error);
+    const n = await resolveReports(
+      tx,
+      jobId,
+      "dismissed",
+      moderator.userId,
+      now,
+    );
+    if (n === 0) return fail("invalidState");
+    await recordAudit(tx, {
+      actorId: moderator.userId,
+      actorKind: "staff",
+      action: "job.reports_dismissed",
+      targetType: "job",
+      targetId: jobId,
+      detail: { count: String(n) },
+      ip,
+    });
+    return { ok: true as const };
+  });
+}
+
+/**
+ * A moderator takes down a published or paused job with a reason (ADR-009).
+ * Its open reports become `actioned`, its applications freeze, and the
+ * creator and every applicant the employer could still move are emailed, in
+ * the same transaction.
+ */
+export async function removeJob(
+  deps: JobsDeps,
+  moderator: Actor,
+  jobId: unknown,
+  raw: RawForm,
+  ip: string | null = null,
+): Promise<WriteResult<RemovalField>> {
+  if (!can(moderator, "job.reviewQueue")) return fail("forbidden");
+  if (!isUuid(jobId)) return fail("notFound");
+  const parsed = parseRemoval(raw);
+  if (!parsed.ok)
+    return { ok: false, error: "validation", fieldErrors: parsed.fieldErrors };
+  const now = nowOf(deps);
+  return deps.db.transaction(async (tx) => {
+    const locked = await lockForModerator(tx, moderator, jobId);
+    if (!locked.ok) return fail(locked.error);
+    const { row, status } = locked;
+    if (!can(moderator, "job.takedown", { actorRole: null, status }))
+      return fail("invalidState");
+    const { reasonCode, note } = parsed.data;
+    await recordAudit(tx, {
+      actorId: moderator.userId,
+      actorKind: "staff",
+      action: "job.removed",
+      targetType: "job",
+      targetId: row.id,
+      detail: { reasonCode },
+      ip,
+    });
+    await tx.insert(jobModerationDecision).values({
+      jobId: row.id,
+      moderatorId: moderator.userId,
+      decision: "removed",
+      reasonCode,
+      note,
+      decidedAt: now,
+    });
+    await tx
+      .update(job)
+      .set({ status: "removed", updatedAt: now })
+      .where(eq(job.id, row.id));
+    await event(tx, row.id, moderator.userId, status, "removed", now);
+    await resolveReports(tx, row.id, "actioned", moderator.userId, now);
+    // Moves take the job's lock first (moveApplication), so a move either
+    // committed before this takedown (and a final state gets no notice) or
+    // runs after it, sees the job removed and is refused.
+    const open = await tx
+      .select({ id: jobApplication.id })
+      .from(jobApplication)
+      .where(
+        and(
+          eq(jobApplication.jobId, row.id),
+          inArray(jobApplication.status, [
+            "submitted",
+            "under_review",
+            "shortlisted",
+          ]),
+        ),
+      )
+      .for("update");
+    for (const a of open)
+      await enqueue(
+        deps.boss,
+        "applications.notify",
+        { applicationId: a.id, kind: "job_removed" },
+        { tx },
+      );
+    await enqueue(
+      deps.boss,
+      "jobs.notify",
+      { jobId: row.id, kind: "removed" },
       { tx },
     );
     return { ok: true as const };

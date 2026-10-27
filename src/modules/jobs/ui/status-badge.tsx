@@ -9,6 +9,7 @@ const tone: Record<JobStatus, string> = {
   closed: "border-muted bg-canvas text-muted",
   expired: "border-muted bg-canvas text-muted",
   rejected: "border-red-700 bg-red-50 text-red-800",
+  removed: "border-red-700 bg-red-50 text-red-800",
 };
 
 /** The job's status as a word (never colour alone). */

@@ -16,6 +16,7 @@ export type AuthErrorKey =
   | "twoFactorExpired"
   | "twoFactorTooManyAttempts"
   | "accountLocked"
+  | "accountSuspended"
   | "wrongPassword"
   | "sessionNotFresh"
   | "totpAlreadyEnabled"
@@ -38,6 +39,7 @@ const CODE_TO_KEY: Record<string, AuthErrorKey> = {
   INVALID_TWO_FACTOR_COOKIE: "twoFactorExpired",
   TOO_MANY_ATTEMPTS_REQUEST_NEW_CODE: "twoFactorTooManyAttempts",
   ACCOUNT_TEMPORARILY_LOCKED: "accountLocked",
+  ACCOUNT_SUSPENDED: "accountSuspended",
   INVALID_PASSWORD: "wrongPassword",
   SESSION_NOT_FRESH: "sessionNotFresh",
   TOTP_ALREADY_ENABLED: "totpAlreadyEnabled",

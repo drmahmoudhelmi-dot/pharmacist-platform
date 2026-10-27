@@ -33,13 +33,17 @@ const verificationNoticePayload = z.strictObject({
   kind: z.enum(["received", "verified", "rejected"]),
 });
 const invitationPayload = z.strictObject({ invitationId: z.uuid() });
+const accountNoticePayload = z.strictObject({
+  suspensionId: z.uuid(),
+  kind: z.enum(["suspended", "reinstated"]),
+});
 const applicationNoticePayload = z.strictObject({
   applicationId: z.uuid(),
-  kind: z.enum(["shortlisted", "accepted", "rejected"]),
+  kind: z.enum(["shortlisted", "accepted", "rejected", "job_removed"]),
 });
 const jobNoticePayload = z.strictObject({
   jobId: z.uuid(),
-  kind: z.enum(["approved", "rejected", "expired"]),
+  kind: z.enum(["approved", "rejected", "expired", "removed"]),
 });
 
 export const JOBS = {
@@ -121,6 +125,24 @@ export const JOBS = {
       expireInSeconds: 60,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       deadLetter: "applications.notify.dead",
+    },
+  },
+  "account.notify.dead": {
+    payload: accountNoticePayload,
+    queue: DEAD_LETTER,
+  },
+  // Email an account that it was suspended or reinstated
+  // (src/modules/identity/suspension-jobs.ts, ADR-009). Enqueued with the change.
+  "account.notify": {
+    payload: accountNoticePayload,
+    queue: {
+      retryLimit: 8,
+      retryDelay: 30,
+      retryBackoff: true,
+      retryDelayMax: 900,
+      expireInSeconds: 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      deadLetter: "account.notify.dead",
     },
   },
   "jobs.notify.dead": {

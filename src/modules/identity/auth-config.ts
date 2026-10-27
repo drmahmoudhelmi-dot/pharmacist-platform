@@ -13,6 +13,7 @@ import type { AuthEmailKind } from "@/shared/email/templates";
 import { dispatchAuthEmail } from "./auth-email";
 import { consumeQuota, EMAIL_QUOTAS, emailLimiterKey } from "./rate-limit";
 import { authSchema } from "./schema";
+import { isSuspended } from "./suspension-state";
 
 /** Better Auth API paths this product does not use; they answer 404. */
 export const DISABLED_AUTH_PATHS = [
@@ -258,6 +259,12 @@ export function createAuth(deps: AuthDeps) {
           // (password sign-in, trusted device, 2FA disable) gets null, even
           // when Better Auth copies fields from a previous session.
           async before(session, context) {
+            // A suspended account gets no session by any path (ADR-009).
+            if (await isSuspended(deps.db, session.userId))
+              throw new APIError("FORBIDDEN", {
+                code: "ACCOUNT_SUSPENDED",
+                message: "Account suspended",
+              });
             const path = context?.path ?? "";
             return {
               data: {
@@ -265,6 +272,14 @@ export function createAuth(deps: AuthDeps) {
                 mfaVerifiedAt: MFA_SESSION_PATHS.has(path) ? new Date() : null,
               },
             };
+          },
+          // The check above runs before the insert; a suspension committed in
+          // between (its session delete ran first) is caught here.
+          async after(created) {
+            if (await isSuspended(deps.db, created.userId))
+              await deps.db.execute(
+                sql`delete from "session" where id = ${created.id}`,
+              );
           },
         },
       },

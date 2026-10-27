@@ -9,10 +9,15 @@ import {
   isEmploymentType,
   isJobCategory,
   isReasonCode,
+  isRemoveReason,
+  isReportReason,
   type JobCategory,
   LIMITS,
   type ReasonCode,
   REJECT_REASONS,
+  type RemoveReason,
+  REPORT_LIMITS,
+  type ReportReason,
 } from "./constants";
 
 // Validation of the job and moderation forms. Runs in the browser for fast
@@ -278,6 +283,45 @@ export function parseDecision(
       reasonCode,
       note: note === "" ? null : note,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Takedown and reports (ADR-009)
+
+export type RemovalInput = { reasonCode: RemoveReason; note: string | null };
+export type RemovalField = "reasonCode" | "note";
+
+export function parseRemoval(raw: RawForm): Parsed<RemovalInput, RemovalField> {
+  const e: FieldErrors<RemovalField> = {};
+  const reason = raw.reasonCode;
+  if (!isRemoveReason(reason))
+    e.reasonCode = reason ? "invalidChoice" : "required";
+  const note = paragraph(raw.note);
+  if (charLength(note) > LIMITS.note.max) e.note = "tooLong";
+  if (Object.keys(e).length > 0 || !isRemoveReason(reason))
+    return { ok: false, fieldErrors: e };
+  return {
+    ok: true,
+    data: { reasonCode: reason, note: note === "" ? null : note },
+  };
+}
+
+export type ReportInput = { reasonCode: ReportReason; details: string | null };
+export type ReportField = "reasonCode" | "details";
+
+export function parseReport(raw: RawForm): Parsed<ReportInput, ReportField> {
+  const e: FieldErrors<ReportField> = {};
+  const reason = raw.reasonCode;
+  if (!isReportReason(reason))
+    e.reasonCode = reason ? "invalidChoice" : "required";
+  const details = paragraph(raw.details);
+  if (charLength(details) > REPORT_LIMITS.details.max) e.details = "tooLong";
+  if (Object.keys(e).length > 0 || !isReportReason(reason))
+    return { ok: false, fieldErrors: e };
+  return {
+    ok: true,
+    data: { reasonCode: reason, details: details === "" ? null : details },
   };
 }
 

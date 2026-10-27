@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { auditIp } from "@/modules/admin/audit";
-import { requireActor } from "@/modules/identity/policy";
+import { requireActor, requireStaff } from "@/modules/identity/policy";
 import { getDb } from "@/shared/db/client";
 import { getJobClient } from "@/shared/jobs/client";
 import { logger } from "@/shared/logging/logger";
@@ -19,8 +19,11 @@ import {
   createJob,
   decideJob,
   deleteJob,
+  dismissReports,
   type JobsDeps,
   pauseJob,
+  removeJob,
+  reportJob,
   resumeJob,
   submitJob,
   updateJob,
@@ -32,6 +35,8 @@ import {
   formDataToRaw,
   isUuid,
   type JobField,
+  type RemovalField,
+  type ReportField,
 } from "./validation";
 
 // Server actions for the job pages. Each resolves the caller from the session
@@ -248,5 +253,48 @@ export async function moveApplicationAction(
     { userId: actor.userId, applicationId },
     async () =>
       moveApplication(await applicationDeps(), actor, applicationId, to),
+  );
+}
+
+// Reports and takedown (ADR-009). The reporter is any signed-in member; the
+// moderator actions need a staff session, and the service checks again.
+
+export async function reportJobAction(
+  jobId: string,
+  form: FormData,
+): Promise<ActionResult<ReportField>> {
+  const actor = await requireActor();
+  return run("reported", { userId: actor.userId, jobId }, async () =>
+    reportJob(await deps(), actor, jobId, formDataToRaw(form)),
+  );
+}
+
+export async function dismissReportsAction(
+  jobId: string,
+): Promise<ActionResult> {
+  const actor = await requireStaff();
+  return run("reports_dismissed", { userId: actor.userId, jobId }, async () =>
+    dismissReports(
+      await deps(),
+      actor,
+      jobId,
+      auditIp((await headers()).get("x-forwarded-for")),
+    ),
+  );
+}
+
+export async function removeJobAction(
+  jobId: string,
+  form: FormData,
+): Promise<ActionResult<RemovalField>> {
+  const actor = await requireStaff();
+  return run("removed", { userId: actor.userId, jobId }, async () =>
+    removeJob(
+      await deps(),
+      actor,
+      jobId,
+      formDataToRaw(form),
+      auditIp((await headers()).get("x-forwarded-for")),
+    ),
   );
 }

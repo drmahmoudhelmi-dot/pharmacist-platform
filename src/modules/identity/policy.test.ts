@@ -145,3 +145,24 @@ describe("actorFromSession", () => {
     ).toBe(false);
   });
 });
+
+describe("account.suspend (ADR-009)", () => {
+  it("needs moderator or super_admin, a verified email and a TOTP session", () => {
+    for (const roles of [["moderator"], ["super_admin"]] as const) {
+      expect(can(actor({ roles, mfaSatisfied: true }), "account.suspend")).toBe(
+        true,
+      );
+      expect(can(actor({ roles }), "account.suspend")).toBe(false);
+      expect(
+        can(
+          actor({ roles, mfaSatisfied: true, emailVerified: false }),
+          "account.suspend",
+        ),
+      ).toBe(false);
+    }
+    for (const role of ["support", "verification_reviewer", "billing"] as const)
+      expect(
+        can(actor({ roles: [role], mfaSatisfied: true }), "account.suspend"),
+      ).toBe(false);
+  });
+});

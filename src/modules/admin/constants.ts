@@ -7,6 +7,11 @@ export const AUDIT_ACTIONS = [
   "verification.decided",
   "job.moderated",
   "account.data_exported",
+  // ADR-009 (step 7b)
+  "account.suspended",
+  "account.reinstated",
+  "job.removed",
+  "job.reports_dismissed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

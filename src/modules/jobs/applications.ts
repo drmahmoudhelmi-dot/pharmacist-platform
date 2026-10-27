@@ -572,6 +572,7 @@ export async function getApplicationForEmployer(
       phoneE164: jobApplication.phoneE164,
       coverNote: jobApplication.coverNote,
       jobTitle: job.title,
+      jobStatus: job.status,
       organizationId: job.organizationId,
     })
     .from(jobApplication)
@@ -592,6 +593,7 @@ export async function getApplicationForEmployer(
       applicantId: row.applicantId,
       status,
       to,
+      jobStatus: row.jobStatus,
     }),
   );
   return {
@@ -626,11 +628,26 @@ export async function moveApplication(
   if (!isEmployerMove(to)) return fail("validation");
   const now = nowOf(deps);
   return deps.db.transaction(async (tx) => {
+    // The job first (shared), then the application: the same order as a
+    // takedown (job, then its applications), so a move waiting on a
+    // takedown re-reads the removed job and is refused (ADR-009).
+    const [owner] = await tx
+      .select({ jobId: jobApplication.jobId })
+      .from(jobApplication)
+      .where(eq(jobApplication.id, applicationId))
+      .limit(1);
+    if (!owner) return fail("notFound");
+    await tx
+      .select({ id: job.id })
+      .from(job)
+      .where(eq(job.id, owner.jobId))
+      .for("share");
     const [row] = await tx
       .select({
         status: jobApplication.status,
         applicantId: jobApplication.applicantId,
         organizationId: job.organizationId,
+        jobStatus: job.status,
       })
       .from(jobApplication)
       .innerJoin(job, eq(job.id, jobApplication.jobId))
@@ -648,6 +665,7 @@ export async function moveApplication(
         applicantId: row.applicantId,
         status,
         to,
+        jobStatus: row.jobStatus,
       })
     )
       return fail("invalidState");

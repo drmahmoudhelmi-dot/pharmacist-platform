@@ -130,6 +130,7 @@ export function fixtures(h: Harness, boss: PgBoss) {
   }
 
   return {
+    sessionActor,
     person,
     moderator,
     markVerified,

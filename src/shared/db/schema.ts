@@ -2,6 +2,7 @@
 // (see src/modules/README.md). Modules never import each other's tables.
 export {
   account,
+  accountSuspension,
   rateLimit,
   session,
   twoFactor,
@@ -34,5 +35,6 @@ export {
   jobApplication,
   jobEvent,
   jobModerationDecision,
+  jobReport,
 } from "@/modules/jobs/schema";
 export { adminAudit } from "@/modules/admin/schema";

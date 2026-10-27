@@ -50,19 +50,25 @@ export async function signIn(page: Page, email: string) {
   await page.getByRole("button", { name: "تسجيل الدخول" }).click();
 }
 
-const lastCode = new Map<string, string>();
+const usedCodes = new Map<string, Set<string>>();
 
 /**
  * A TOTP code that was not used before for this secret. The server refuses a
- * code it already accepted (replay protection, ADR-008), so when the current
- * step's code was used, wait for the next 30-second step.
+ * code it already accepted (replay protection, ADR-008); when both the
+ * current and the next step's codes were used, wait for a new step.
  */
 export async function freshTotp(secret: string): Promise<string> {
   for (let i = 0; i < 40; i++) {
-    const code = totpFromSecret(secret);
-    if (lastCode.get(secret) !== code) {
-      lastCode.set(secret, code);
-      return code;
+    const used = usedCodes.get(secret) ?? new Set<string>();
+    usedCodes.set(secret, used);
+    // The current step's code, else the next step's (Better Auth accepts one
+    // step of drift), so a second sign-in rarely has to wait.
+    for (const offset of [0, 30_000]) {
+      const code = totpFromSecret(secret, Date.now() + offset);
+      if (!used.has(code)) {
+        used.add(code);
+        return code;
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }

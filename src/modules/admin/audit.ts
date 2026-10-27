@@ -20,6 +20,12 @@ const DETAIL: Record<AuditAction, z.ZodType<Record<string, string>>> = {
   "verification.decided": z.strictObject({ decision: code, reasonCode: code }),
   "job.moderated": z.strictObject({ decision: code, reasonCode: code }),
   "account.data_exported": z.strictObject({}),
+  "account.suspended": z.strictObject({ reasonCode: code }),
+  "account.reinstated": z.strictObject({ reasonCode: code }),
+  "job.removed": z.strictObject({ reasonCode: code }),
+  "job.reports_dismissed": z.strictObject({
+    count: z.string().regex(/^\d{1,6}$/),
+  }),
 };
 
 export type AuditEntry = {

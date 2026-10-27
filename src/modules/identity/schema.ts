@@ -9,9 +9,15 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { STAFF_ROLES } from "./roles";
+import {
+  LIFT_REASONS,
+  SUSPENSION_LIMITS,
+  SUSPENSION_REASONS,
+} from "./suspension-constants";
 
 // Better Auth tables (ADR-002). Property names are the model fields Better Auth
 // reads and writes; column names are snake_case. Generated from Better Auth's
@@ -167,6 +173,55 @@ export const userRole = pgTable(
       "user_role_role_check",
       sql.raw(
         `${table.role.name} in (${STAFF_ROLES.map((r) => `'${r}'`).join(", ")})`,
+      ),
+    ),
+  ],
+);
+
+const sqlList = (values: readonly string[]) =>
+  values.map((v) => `'${v}'`).join(", ");
+
+// Account suspensions (ADR-009). At most one active row per account; the lift
+// columns are set once and nothing else changes (trigger in migration 0011).
+export const accountSuspension = pgTable(
+  "account_suspension",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reasonCode: text("reason_code", { enum: SUSPENSION_REASONS }).notNull(),
+    // Internal; never shown or sent to the account.
+    note: text("note"),
+    suspendedBy: uuid("suspended_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    suspendedAt: timestamptz("suspended_at").defaultNow().notNull(),
+    liftedAt: timestamptz("lifted_at"),
+    liftedBy: uuid("lifted_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    liftReasonCode: text("lift_reason_code", { enum: LIFT_REASONS }),
+  },
+  (table) => [
+    uniqueIndex("account_suspension_active_unique")
+      .on(table.userId)
+      .where(sql`${table.liftedAt} is null`),
+    index("account_suspension_user_idx").on(table.userId, table.suspendedAt),
+    check(
+      "account_suspension_reason_check",
+      sql.raw(`reason_code in (${sqlList(SUSPENSION_REASONS)})`),
+    ),
+    check(
+      "account_suspension_lift_check",
+      sql.raw(
+        `(lifted_at is null and lift_reason_code is null) or (lifted_at is not null and lift_reason_code in (${sqlList(LIFT_REASONS)}))`,
+      ),
+    ),
+    check(
+      "account_suspension_note_check",
+      sql.raw(
+        `note is null or char_length(note) between 1 and ${SUSPENSION_LIMITS.note.max}`,
       ),
     ),
   ],

@@ -159,6 +159,7 @@ describe("applications policy (ADR-007)", () => {
               applicantId: "applicant-2",
               status,
               to,
+              jobStatus: "published",
             }),
             `${status} -> ${to}`,
           ).toBe(
@@ -185,5 +186,64 @@ describe("applications policy (ADR-007)", () => {
           to: "under_review",
         }),
       ).toBe(false);
+  });
+});
+
+describe("takedown and reports (ADR-009)", () => {
+  it("lets a moderator outside the organization take down live jobs only", () => {
+    for (const status of JOB_STATUSES)
+      expect(
+        can(moderator, "job.takedown", { actorRole: null, status }),
+        status,
+      ).toBe(status === "published" || status === "paused");
+    expect(
+      can(moderator, "job.takedown", {
+        actorRole: "owner",
+        status: "published",
+      }),
+    ).toBe(false);
+    expect(
+      can({ ...moderator, mfaSatisfied: false }, "job.takedown", {
+        actorRole: null,
+        status: "published",
+      }),
+    ).toBe(false);
+    expect(
+      can(actor(), "job.takedown", { actorRole: null, status: "published" }),
+    ).toBe(false);
+  });
+
+  it("lets verified members report published jobs of other organizations", () => {
+    for (const status of JOB_STATUSES)
+      expect(
+        can(actor(), "job.report", { actorRole: null, status }),
+        status,
+      ).toBe(status === "published");
+    for (const actorRole of ["owner", "recruiter"] as const)
+      expect(
+        can(actor(), "job.report", { actorRole, status: "published" }),
+      ).toBe(false);
+    expect(
+      can(actor({ emailVerified: false }), "job.report", {
+        actorRole: null,
+        status: "published",
+      }),
+    ).toBe(false);
+  });
+
+  it("freezes the applications of a removed job", () => {
+    const move = (jobStatus?: JobStatus) =>
+      canApplication(actor(), "application.move", {
+        actorRole: "owner",
+        applicantId: "applicant-2",
+        status: "submitted",
+        to: "under_review",
+        jobStatus,
+      });
+    expect(move("published")).toBe(true);
+    expect(move("closed")).toBe(true);
+    expect(move("removed")).toBe(false);
+    // Fails closed without the job's status.
+    expect(move(undefined)).toBe(false);
   });
 });
