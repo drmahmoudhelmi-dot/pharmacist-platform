@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { formatCount } from "@/shared/i18n/format";
 import { Link } from "@/shared/i18n/navigation";
 import type { ProfileView as View } from "../service";
 import { formatMonth } from "./format";
@@ -71,7 +72,10 @@ export async function ProfileView({ view }: { view: View }) {
             {tp(`careerStages.${view.careerStage}`)}
           </li>
           <li className="rounded bg-canvas px-2 py-1">
-            {t("yearsExperience", { count: view.yearsExperience })}
+            {t("yearsExperience", {
+              count: view.yearsExperience,
+              formatted: formatCount(view.yearsExperience, locale),
+            })}
           </li>
           {governorate ? (
             <li className="rounded bg-canvas px-2 py-1">{governorate}</li>

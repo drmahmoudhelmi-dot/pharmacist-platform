@@ -4,7 +4,7 @@ import { requireActor } from "@/modules/identity/policy";
 import { listJobApplications } from "@/modules/jobs/applications";
 import { getJobForMember } from "@/modules/jobs/service";
 import { ApplicationStatusBadge } from "@/modules/jobs/ui/application-status-badge";
-import { dateTimeFormat } from "@/modules/jobs/ui/format";
+import { dateTimeFormat, formatCount } from "@/modules/jobs/ui/format";
 import { VerifiedBadge } from "@/modules/profiles/ui/profile-view";
 import { getDb } from "@/shared/db/client";
 import { Link } from "@/shared/i18n/navigation";
@@ -70,7 +70,10 @@ export default async function JobApplicationsPage({
                 <span className="text-sm text-muted">
                   {tp(`careerStages.${a.careerStage}`)}
                   {a.yearsExperience !== null
-                    ? ` · ${tv("yearsExperience", { count: a.yearsExperience })}`
+                    ? ` · ${tv("yearsExperience", {
+                        count: a.yearsExperience,
+                        formatted: formatCount(a.yearsExperience, locale),
+                      })}`
                     : null}
                 </span>
                 <span className="flex flex-wrap items-center gap-2">

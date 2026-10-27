@@ -2,6 +2,7 @@ import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 import { searchJobs } from "@/modules/jobs/service";
 import { EMPLOYMENT_TYPES, JOB_CATEGORIES } from "@/modules/jobs/constants";
 import { dateTimeFormat } from "@/modules/jobs/ui/format";
+import { NotReviewedNote } from "@/modules/jobs/ui/not-reviewed-note";
 import { salaryText } from "@/modules/jobs/ui/job-details";
 import { parseSearch } from "@/modules/jobs/validation";
 import { listGovernorates } from "@/modules/profiles/governorates";
@@ -121,7 +122,7 @@ export default async function JobsPage({ params, searchParams }: Props) {
           ) : null}
         </div>
       </form>
-      <p className="text-sm text-muted">{t("notReviewed")}</p>
+      <NotReviewedNote>{t("notReviewed")}</NotReviewedNote>
       {page.items.length === 0 ? (
         <p
           className="rounded-lg border border-muted bg-surface p-3"

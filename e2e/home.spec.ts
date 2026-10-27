@@ -8,6 +8,19 @@ test("root serves Arabic RTL", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
+test("the landing page shows its sections and sign-up actions when signed out", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (const id of ["pharmacists", "pharmacies", "trust"]) {
+    await expect(page.getByTestId(`home-${id}`)).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: "إنشاء حساب" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "تسجيل الدخول" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "الوظائف" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "حسابي" })).toHaveCount(0);
+});
+
 test("no horizontal scroll at 360px", async ({ page }) => {
   await page.goto("/");
   const overflow = await page.evaluate(

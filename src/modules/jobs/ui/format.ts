@@ -2,7 +2,7 @@
 // components). Dates in Africa/Cairo; numbers and currency in the user's
 // locale (Arabic-Indic digits in Arabic).
 
-const intlLocale = (locale: string) => (locale === "ar" ? "ar-EG" : "en-GB");
+import { formatCount, intlLocale } from "@/shared/i18n/format";
 
 export function dateTimeFormat(locale: string) {
   return new Intl.DateTimeFormat(intlLocale(locale), {
@@ -27,6 +27,4 @@ export function formatPounds(pounds: number, locale: string): string {
   }).format(pounds);
 }
 
-export function formatCount(value: number, locale: string): string {
-  return new Intl.NumberFormat(intlLocale(locale)).format(value);
-}
+export { formatCount };

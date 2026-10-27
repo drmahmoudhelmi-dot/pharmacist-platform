@@ -18,6 +18,7 @@ import {
   getPublicJob,
   type JobsDeps,
   listOrganizationJobs,
+  countPendingJobReviews,
   listReviewQueue,
   pauseJob,
   resumeJob,
@@ -123,6 +124,30 @@ async function organizationOf(owner: Person) {
   });
   if (!result.ok) throw new Error(`organization: ${result.error}`);
   return result.organizationId;
+}
+
+/** Adds an existing person to an organization as recruiter. */
+async function addRecruiterTo(
+  owner: Person,
+  organizationId: string,
+  who: Person,
+) {
+  const sent = await inviteMember(
+    { db: h.db, boss },
+    owner.actor,
+    organizationId,
+    {
+      email: who.email,
+      role: "recruiter",
+    },
+  );
+  if (!sent.ok) throw new Error("invite");
+  await respondToInvitation(
+    { db: h.db, boss },
+    who.actor,
+    sent.invitationId,
+    "accept",
+  );
 }
 
 async function addRecruiter(owner: Person, organizationId: string) {
@@ -340,6 +365,8 @@ describe("submission and moderation", () => {
 
     const queue = await listReviewQueue(h.db, mod.actor);
     expect(queue.map((q) => q.id)).toContain(id);
+    expect(await countPendingJobReviews(h.db, mod.actor)).toBe(queue.length);
+    expect(await countPendingJobReviews(h.db, owner.actor)).toBeNull();
     expect(queue.find((q) => q.id === id)).toMatchObject({
       posterVerified: true,
       organizationName: expect.stringContaining("صيدلية الاختبار"),
@@ -438,6 +465,35 @@ describe("submission and moderation", () => {
       .from(jobModerationDecision)
       .where(eq(jobModerationDecision.jobId, id));
     expect(decisions).toHaveLength(1);
+  });
+
+  it("counts pending reviews exactly as the queue lists them", async () => {
+    const mod = await moderator("count-mod");
+    const queueSize = async () =>
+      (await listReviewQueue(h.db, mod.actor)).length;
+    const before = await countPendingJobReviews(h.db, mod.actor);
+    expect(before).toBe(await queueSize());
+
+    // Someone else's job in someone else's organization: counted.
+    const owner = await person("count-owner");
+    const org = await organizationOf(owner);
+    const id = await draft(owner, org);
+    await submitJob(deps, owner.actor, id);
+    expect(await countPendingJobReviews(h.db, mod.actor)).toBe(before! + 1);
+    expect(await queueSize()).toBe(before! + 1);
+
+    // A job the moderator created and submitted in their own organization
+    // is not counted.
+    const ownOrg = await organizationOf(mod);
+    const own = await draft(mod, ownOrg);
+    await submitJob(deps, mod.actor, own);
+    expect(await countPendingJobReviews(h.db, mod.actor)).toBe(before! + 1);
+    expect(await queueSize()).toBe(before! + 1);
+
+    // Once the moderator joins that organization, its job drops out.
+    await addRecruiterTo(owner, org, mod);
+    expect(await countPendingJobReviews(h.db, mod.actor)).toBe(before!);
+    expect(await queueSize()).toBe(before!);
   });
 
   it("refuses moderation to non-moderators, members of the organization and without MFA", async () => {

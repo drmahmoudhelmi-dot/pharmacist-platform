@@ -1,6 +1,6 @@
 import "server-only";
 import { isIP } from "node:net";
-import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Logger } from "pino";
 import { recordAudit } from "@/modules/admin/audit";
@@ -498,6 +498,27 @@ export async function exportOwnVerification(
 
 // ---------------------------------------------------------------------------
 // Reviewer queue
+
+/**
+ * Number of pending submissions this reviewer may review (same filter as
+ * `listQueue`: their own submission is left out); null if not a reviewer.
+ */
+export async function countPendingVerifications(
+  db: Db,
+  reviewer: Actor,
+): Promise<number | null> {
+  if (!can(reviewer, "verification.queue")) return null;
+  const [row] = await db
+    .select({ n: count() })
+    .from(verificationSubmission)
+    .where(
+      and(
+        eq(verificationSubmission.status, "pending"),
+        ne(verificationSubmission.userId, reviewer.userId),
+      ),
+    );
+  return row?.n ?? 0;
+}
 
 export type QueueItem = {
   id: string;

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { JobContent, OrganizationRef } from "../service";
+import { NotReviewedNote } from "./not-reviewed-note";
 import { formatCalendarDate, formatCount, formatPounds } from "./format";
 
 /** One line for the pay: a range, a lower or upper bound, or "not stated". */
@@ -115,7 +116,7 @@ export async function JobDetails({
             </span>
           </p>
         ) : null}
-        <p className="text-sm text-muted">{t("notReviewed")}</p>
+        <NotReviewedNote>{t("notReviewed")}</NotReviewedNote>
       </section>
       <section
         aria-labelledby="job-description-heading"

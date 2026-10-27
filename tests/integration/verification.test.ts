@@ -33,6 +33,7 @@ import {
   getMyVerificationStatus,
   getSubmissionForReview,
   getVerificationBadge,
+  countPendingVerifications,
   listQueue,
   revealNationalId,
   submitVerification,
@@ -771,6 +772,22 @@ describe("legal name in Arabic", () => {
     expect((await rowOf(id))?.legalNameAr).toBe(LEGAL_NAME);
   });
 
+  it("counts pending submissions exactly, without the reviewer's own", async () => {
+    const { actor: rev } = await reviewer("count-rev");
+    const { actor: other } = await reviewer("count-rev-other");
+    const before = await countPendingVerifications(h.db, rev);
+
+    const { actor: applicant } = await member("count-applicant");
+    await submitted(applicant);
+    expect(await countPendingVerifications(h.db, rev)).toBe(before! + 1);
+
+    // The reviewer's own pending submission is not counted for them, but is
+    // for another reviewer.
+    await submitted(rev);
+    expect(await countPendingVerifications(h.db, rev)).toBe(before! + 1);
+    expect(await countPendingVerifications(h.db, other)).toBe(before! + 2);
+  });
+
   it("reaches reviewers and the owner's export, nobody else: no status, profile, email or log", async () => {
     const name = "مريم أنور عبد الغفار";
     const { actor, email } = await member("name-reach");
@@ -793,6 +810,9 @@ describe("legal name in Arabic", () => {
     // Reviewers: queue and detail.
     const queue = await listQueue(h.db, rev, 1);
     expect(queue!.items.find((i) => i.id === id)?.legalNameAr).toBe(name);
+    expect(await countPendingVerifications(h.db, other)).toBeNull();
+    expect(await countPendingVerifications(h.db, noMfa)).toBeNull();
+    expect(await countPendingVerifications(h.db, actor)).toBeNull();
     expect((await getSubmissionForReview(h.db, rev, id))?.legalNameAr).toBe(
       name,
     );

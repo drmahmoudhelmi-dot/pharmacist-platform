@@ -8,6 +8,7 @@ import {
   gt,
   inArray,
   lt,
+  notInArray,
   or,
   sql,
 } from "drizzle-orm";
@@ -18,6 +19,7 @@ import type { Actor } from "@/modules/identity/policy";
 import {
   getPublicOrganizations,
   getRoleInOrganization,
+  listMyOrganizationIds,
   type PublicOrganization,
 } from "@/modules/organizations/service";
 import { listGovernorates } from "@/modules/profiles/governorates";
@@ -1021,6 +1023,33 @@ export async function listReviewQueue(
   }));
 }
 
+/**
+ * Number of jobs waiting for review, for the staff home, with the same
+ * exclusions as the queue: jobs the moderator created or submitted and jobs
+ * of organizations they belong to. Null if not a moderator.
+ */
+export async function countPendingJobReviews(
+  db: Db,
+  moderator: Actor,
+): Promise<number | null> {
+  if (!can(moderator, "job.reviewQueue")) return null;
+  const memberOf = await listMyOrganizationIds(db, moderator);
+  const [row] = await db
+    .select({ n: count() })
+    .from(job)
+    .where(
+      and(
+        eq(job.status, "pending_review"),
+        sql`${job.createdBy} is distinct from ${moderator.userId}`,
+        sql`${job.submittedBy} is distinct from ${moderator.userId}`,
+        ...(memberOf.length > 0
+          ? [notInArray(job.organizationId, memberOf)]
+          : []),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
 export type ReviewView = PublicJobView & { status: JobStatus };
 
 /** One pending job for a moderator who does not belong to its organization. */
@@ -1311,6 +1340,36 @@ export async function listReportQueue(
     reasons: r.reasons.filter(isReportReason),
     oldestReportAt: r.oldest.toISOString(),
   }));
+}
+
+/**
+ * Number of jobs with open reports, for the staff home, with the same
+ * exclusions as the report queue (own jobs, jobs of the moderator's
+ * organizations). Null if not a moderator.
+ */
+export async function countJobsWithOpenReports(
+  db: Db,
+  moderator: Actor,
+): Promise<number | null> {
+  if (!can(moderator, "job.reviewQueue")) return null;
+  const memberOf = await listMyOrganizationIds(db, moderator);
+  const [row] = await db
+    .select({
+      n: sql<number>`count(distinct ${jobReport.jobId})`.mapWith(Number),
+    })
+    .from(jobReport)
+    .innerJoin(job, eq(job.id, jobReport.jobId))
+    .where(
+      and(
+        eq(jobReport.status, "open"),
+        sql`${job.createdBy} is distinct from ${moderator.userId}`,
+        sql`${job.submittedBy} is distinct from ${moderator.userId}`,
+        ...(memberOf.length > 0
+          ? [notInArray(job.organizationId, memberOf)]
+          : []),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 export type JobReportView = {

@@ -214,6 +214,19 @@ export async function listMyOrganizations(
   }));
 }
 
+/** Ids of the organizations the caller belongs to (ids only, one query). */
+export async function listMyOrganizationIds(
+  db: Db,
+  actor: Actor,
+): Promise<string[]> {
+  if (!actor.emailVerified) return [];
+  const rows = await db
+    .select({ id: organizationMember.organizationId })
+    .from(organizationMember)
+    .where(eq(organizationMember.userId, actor.userId));
+  return rows.map((r) => r.id);
+}
+
 /**
  * One organization as its member sees it. Null when the id is malformed, the
  * organization does not exist or the caller is not a member: callers answer

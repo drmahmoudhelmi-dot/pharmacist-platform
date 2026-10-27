@@ -23,6 +23,7 @@ import {
   getJobForModeration,
   getPublicJob,
   getReportState,
+  countJobsWithOpenReports,
   listReportQueue,
   pauseJob,
   removeJob,
@@ -476,6 +477,10 @@ describe("job reports", () => {
       (q) => q.jobId === jobId,
     );
     expect(queued).toMatchObject({ openReports: 2, status: "published" });
+    // Two reports on one job count as one job; non-moderators get null.
+    const before = await countJobsWithOpenReports(h.db, mod.actor);
+    expect(before).toBeGreaterThanOrEqual(1);
+    expect(await countJobsWithOpenReports(h.db, a.actor)).toBeNull();
     expect(queued?.reasons.sort()).toEqual(["discriminatory", "fake_or_scam"]);
     const view = await getJobForModeration(h.db, mod.actor, jobId);
     expect(view?.reports.map((r) => r.reporterEmail).sort()).toEqual(
@@ -513,6 +518,7 @@ describe("job reports", () => {
     expect(
       (await listReportQueue(h.db, mod.actor)).some((q) => q.jobId === jobId),
     ).toBe(false);
+    expect(await countJobsWithOpenReports(h.db, mod.actor)).toBe(before! - 1);
     expect(await auditOf(jobId)).toContainEqual({
       actor_id: mod.actor.userId,
       action: "job.reports_dismissed",
