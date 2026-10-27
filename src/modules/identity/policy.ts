@@ -7,6 +7,7 @@ import { redirect } from "@/shared/i18n/navigation";
 import { getAuth } from "./auth";
 import { STAFF_ROLES, type StaffRole } from "./roles";
 import { listRoles } from "./roles-service";
+import { isSuspended } from "./suspension-state";
 
 /** The authenticated caller as the policy sees it. Built only on the server. */
 export type Actor = {
@@ -33,6 +34,9 @@ const STAFF_ACTION_ROLES = {
   "roles.manage": ["super_admin"],
   // Read the admin audit log (ADR-008).
   "audit.read": ["super_admin"],
+  // Suspend and reinstate accounts (ADR-009); staff accounts: super_admin
+  // only, checked by the service.
+  "account.suspend": ["moderator", "super_admin"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 type StaffAction = keyof typeof STAFF_ACTION_ROLES;
@@ -113,6 +117,9 @@ export function actorFromSession(
 export const getActor = cache(async (): Promise<Actor | null> => {
   const result = await getAuth().api.getSession({ headers: await headers() });
   if (!result) return null;
+  // A session that slipped past the create hook while a suspension was
+  // committing still counts for nothing (ADR-009).
+  if (await isSuspended(getDb(), result.user.id)) return null;
   const roles = await listRoles(getDb(), result.user.id);
   return actorFromSession(result, roles);
 });

@@ -52,7 +52,10 @@ export function renderJobEmail(
   const catalog = catalogs[input.locale];
   const strings = catalog.JobEmail[kind];
   const paragraphs = [fill(strings.body, { title: input.title })];
-  if (kind === "rejected" && isRejectReason(input.rejectionReason))
+  if (
+    (kind === "rejected" || kind === "removed") &&
+    isRejectReason(input.rejectionReason)
+  )
     paragraphs.push(
       `${catalog.JobEmail.reasonLabel}: ${catalog.JobRejectReasons[input.rejectionReason]}`,
     );
@@ -101,6 +104,7 @@ export async function sendJobNotice(
     approved: ["published", "paused", "closed", "expired"],
     rejected: ["rejected"],
     expired: ["expired"],
+    removed: ["removed"],
   };
   if (!expected[kind].includes(row.status)) return skip("state_mismatch");
   if (!row.createdBy) return skip("no_creator");
@@ -109,7 +113,7 @@ export async function sendJobNotice(
   const to = await getNotificationAddress(deps.db, row.createdBy);
   if (!to) return skip("no_address");
   let reason: string | null = null;
-  if (kind === "rejected") {
+  if (kind === "rejected" || kind === "removed") {
     const [decision] = await deps.db
       .select({ reasonCode: jobModerationDecision.reasonCode })
       .from(jobModerationDecision)
@@ -207,6 +211,7 @@ export async function sendApplicationNotice(
       applicantId: jobApplication.applicantId,
       status: jobApplication.status,
       title: job.title,
+      jobStatus: job.status,
     })
     .from(jobApplication)
     .innerJoin(job, eq(job.id, jobApplication.jobId))
@@ -222,7 +227,13 @@ export async function sendApplicationNotice(
     return "skipped" as const;
   };
   if (!row) return skip("application_missing");
-  if (row.status !== kind) return skip("state_mismatch");
+  // A takedown notice goes to applications the employer could still move.
+  const current =
+    kind === "job_removed"
+      ? row.jobStatus === "removed" &&
+        !["accepted", "rejected", "withdrawn"].includes(row.status)
+      : row.status === kind;
+  if (!current) return skip("state_mismatch");
   const to = await getNotificationAddress(deps.db, row.applicantId);
   if (!to) return skip("no_address");
   const catalog = catalogs.ar;

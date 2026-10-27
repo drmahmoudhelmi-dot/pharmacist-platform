@@ -1,10 +1,17 @@
 "use server";
 
 import { headers } from "next/headers";
-import { requireStaff } from "@/modules/identity/policy";
+import { type Actor, can, requireStaff } from "@/modules/identity/policy";
 import { isStaffRole } from "@/modules/identity/roles";
+import {
+  reinstateAccount,
+  type SuspensionResult,
+  suspendAccount,
+} from "@/modules/identity/suspension";
 import { getDb } from "@/shared/db/client";
+import { getJobClient } from "@/shared/jobs/client";
 import { logger } from "@/shared/logging/logger";
+import { auditIp } from "./audit";
 import { changeStaffRole, type RoleActionResult } from "./service";
 
 // Server actions for staff role management (ADR-008). The caller is resolved
@@ -56,4 +63,71 @@ export async function grantRoleAction(form: FormData) {
 
 export async function revokeRoleAction(email: string, role: string) {
   return change("revoke", email, role);
+}
+
+// ---------------------------------------------------------------------------
+// Account suspension (ADR-009). The staff area gate is requireStaff(); the
+// service applies `account.suspend` and the staff-target rule again.
+
+export type SuspensionFormResult =
+  SuspensionResult | { ok: false; error: "generic" };
+
+async function suspension(
+  name: "suspend" | "reinstate",
+  userId: unknown,
+  work: (actor: Actor, ip: string | null) => Promise<SuspensionResult>,
+): Promise<SuspensionFormResult> {
+  const actor = await requireStaff();
+  if (!can(actor, "account.suspend")) return { ok: false, error: "forbidden" };
+  const ip = auditIp((await headers()).get("x-forwarded-for"));
+  const target = typeof userId === "string" ? userId.slice(0, 36) : undefined;
+  try {
+    const result = await work(actor, ip);
+    log.info({
+      event: `admin.account.${name}`,
+      userId: actor.userId,
+      targetUserId: target,
+      outcome: result.ok ? "ok" : result.error,
+    });
+    return result;
+  } catch (error) {
+    log.error(
+      {
+        event: `admin.account.${name}.failed`,
+        userId: actor.userId,
+        targetUserId: target,
+        errName: error instanceof Error ? error.name : undefined,
+      },
+      "account suspension change failed",
+    );
+    return { ok: false, error: "generic" };
+  }
+}
+
+export async function suspendAccountAction(
+  userId: string,
+  form: FormData,
+): Promise<SuspensionFormResult> {
+  return suspension("suspend", userId, async (actor, ip) =>
+    suspendAccount(
+      { db: getDb(), boss: await getJobClient() },
+      actor,
+      { userId, reasonCode: form.get("reasonCode"), note: form.get("note") },
+      ip,
+    ),
+  );
+}
+
+export async function reinstateAccountAction(
+  userId: string,
+  form: FormData,
+): Promise<SuspensionFormResult> {
+  return suspension("reinstate", userId, async (actor, ip) =>
+    reinstateAccount(
+      { db: getDb(), boss: await getJobClient() },
+      actor,
+      { userId, reasonCode: form.get("reasonCode") },
+      ip,
+    ),
+  );
 }

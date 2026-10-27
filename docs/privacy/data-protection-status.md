@@ -21,6 +21,7 @@ Tracks Egyptian data-protection obligations (Law 151 of 2020 and its executive r
 | 7 | Breach notification: deadline, to whom, and content. | Incident runbook (launch checklist) | Pending |
 | 8 | National ID handling: is our approach (field-level encryption, masked display, reviewer-only access, access log) sufficient, and may we keep a keyed hash for duplicate detection? | Step 4 design | Pending |
 | 9 | Data subject rights: required response times for access, correction, export and deletion requests. Must the export include the reviewer's internal note on a verification decision (today it does not; it includes status, claims, masked ID, document kinds and reason code)? | Account features | Pending |
+| 10 | Data-rights requests from suspended accounts (they cannot sign in to export): support handles them by hand. Confirm this process with counsel. | Account features | Pending |
 
 ## Data we will process (milestone 1)
 
@@ -45,3 +46,5 @@ Tracks Egyptian data-protection obligations (Law 151 of 2020 and its executive r
 | Applications: profile snapshot (display name, headline, bio, career stage, years of experience, governorate, specialties, experience list) shared with the employer at apply time; phone number only if the applicant ticks it for that application; optional cover note. The employer also sees the applicant's verification badge (not stored on the application). Visible to owners and recruiters of the job's organization only. No CV files at launch | Job applications | `job_application` (jobs module) |
 | Application history (who moved an application to which status, and when) | Accountability for application decisions | `application_event`, append-only |
 | Admin audit log: staff and target account ids, actor kind, action codes, target type and id, detail codes, client IP. No names, emails, national IDs or notes | Audit trail for staff actions, role changes and data exports | `admin_audit`, append-only (ADR-008). Rows survive account deletion: the actor id is nulled, target ids are kept. Retention pending question 6 |
+| Account suspensions: reason, internal staff note, staff ids (suspending and lifting), times, lift reason | Enforcing account suspension and keeping its history | `account_suspension`, kept for the account's life. The account is told the reason only, never the note. Retention pending question 6 |
+| Job reports: reporter id, reason, optional free-text details (up to 500 characters), resolution and times | Reports of misleading or fraudulent job posts | `job_report`, deleted with the job. Visible to moderators only, never to the employer. Retention pending question 6 |

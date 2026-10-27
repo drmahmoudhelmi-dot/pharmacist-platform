@@ -7,6 +7,7 @@ describe("toErrorKey", () => {
       "invalidCredentials",
     );
     expect(toErrorKey(403, "EMAIL_NOT_VERIFIED")).toBe("emailNotVerified");
+    expect(toErrorKey(403, "ACCOUNT_SUSPENDED")).toBe("accountSuspended");
     expect(toErrorKey(400, "TOKEN_EXPIRED")).toBe("invalidToken");
     expect(toErrorKey(400, "PASSWORD_COMPROMISED")).toBe("passwordCompromised");
   });

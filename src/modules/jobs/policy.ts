@@ -8,6 +8,7 @@ import {
   isApplicationStatus,
   isJobStatus,
   type JobStatus,
+  REPORTABLE,
   WITHDRAWABLE,
 } from "./constants";
 
@@ -31,7 +32,11 @@ export type JobAction =
   | "job.copy"
   // Moderator side.
   | "job.reviewQueue"
-  | "job.review";
+  | "job.review"
+  // A live job taken down (ADR-009).
+  | "job.takedown"
+  // Any signed-in member reports a live job of another organization.
+  | "job.report";
 
 export type JobResource = {
   /** The actor's role in the job's organization; absent = not a member. */
@@ -71,6 +76,20 @@ export function can(
       resource?.status === "pending_review"
     );
 
+  if (name === "job.takedown")
+    return (
+      isModerator(actor) &&
+      !resource?.actorRole &&
+      (resource?.status === "published" || resource?.status === "paused")
+    );
+  if (name === "job.report")
+    return (
+      // Not one's own organization's job; only live jobs.
+      !resource?.actorRole &&
+      isJobStatus(resource?.status) &&
+      REPORTABLE.includes(resource.status)
+    );
+
   if (
     !canOrganization(actor, "jobs.manage", { actorRole: resource?.actorRole })
   )
@@ -104,6 +123,8 @@ export type ApplicationResource = {
   status?: ApplicationStatus;
   /** The target status of `application.move`. */
   to?: ApplicationStatus;
+  /** The job's status: applications of a removed job are frozen (ADR-009). */
+  jobStatus?: JobStatus;
 };
 
 /** Fails closed like `can` above. */
@@ -141,6 +162,9 @@ export function canApplication(
         resource.applicantId !== actor.userId &&
         // The employer never acts as the applicant (withdraw is theirs).
         resource?.to !== "withdrawn" &&
+        // A job taken down by moderation freezes its applications.
+        isJobStatus(resource?.jobStatus) &&
+        resource.jobStatus !== "removed" &&
         isApplicationStatus(resource?.status) &&
         isApplicationStatus(resource?.to) &&
         canMoveApplication(resource.status, resource.to)

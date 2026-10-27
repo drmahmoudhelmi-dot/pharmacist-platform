@@ -3,6 +3,7 @@ import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { getAccountExport } from "@/modules/identity/export";
 import type { Actor } from "@/modules/identity/policy";
+import { isSuspended } from "@/modules/identity/suspension-state";
 import {
   exportOwnOrganizations,
   type OrganizationsExport,
@@ -375,6 +376,9 @@ export async function getProfileForViewer(
     .limit(1);
   const row = rows[0];
   if (!row || !canViewProfile(viewer, row)) return null;
+  // A suspended account's profile is hidden from others (ADR-009).
+  if (row.userId !== viewer.userId && (await isSuspended(db, row.userId)))
+    return null;
 
   const [items, badge] = await Promise.all([
     experienceOf(db, row.userId),

@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "@/modules/identity/schema";
@@ -27,6 +28,10 @@ import {
   MODERATION_DECISIONS,
   REASON_CODES,
   REJECT_REASONS,
+  REMOVE_REASONS,
+  REPORT_LIMITS,
+  REPORT_REASONS,
+  REPORT_STATUSES,
 } from "./constants";
 
 // Tables owned by the jobs module (ADR-006). References to other modules:
@@ -167,7 +172,7 @@ export const job = pgTable(
       "job_state_check",
       sql.raw(
         `(status in ('draft', 'rejected') or submitted_at is not null)
-     and (status not in ('published', 'paused', 'closed', 'expired') or (published_at is not null and first_published_at is not null and expires_at is not null))
+     and (status not in ('published', 'paused', 'closed', 'expired', 'removed') or (published_at is not null and first_published_at is not null and expires_at is not null))
      and ((status = 'closed') = (closed_at is not null))`,
       ),
     ),
@@ -203,7 +208,7 @@ export const jobModerationDecision = pgTable(
     check(
       "job_moderation_decision_reason_check",
       sql.raw(
-        `(decision = 'approved' and reason_code = 'meets_guidelines') or (decision = 'rejected' and reason_code in (${sqlList(REJECT_REASONS)}))`,
+        `(decision = 'approved' and reason_code = 'meets_guidelines') or (decision = 'rejected' and reason_code in (${sqlList(REJECT_REASONS)})) or (decision = 'removed' and reason_code in (${sqlList(REMOVE_REASONS)}))`,
       ),
     ),
     check(
@@ -342,6 +347,59 @@ export const applicationEvent = pgTable(
       "application_event_status_check",
       sql.raw(
         `to_status in (${sqlList(APPLICATION_STATUSES)}) and (from_status is null or from_status in (${sqlList(APPLICATION_STATUSES)}))`,
+      ),
+    ),
+  ],
+);
+
+// Reports of live jobs by members (ADR-009). Resolution is set once (trigger
+// in migration 0011); rows go only with their job. The reporter is shown to
+// moderators only.
+export const jobReport = pgTable(
+  "job_report",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => job.id, { onDelete: "cascade" }),
+    reporterId: uuid("reporter_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    reasonCode: text("reason_code", { enum: REPORT_REASONS }).notNull(),
+    details: text("details"),
+    status: text("status", { enum: REPORT_STATUSES }).default("open").notNull(),
+    createdAt: timestamptz("created_at").defaultNow().notNull(),
+    resolvedAt: timestamptz("resolved_at"),
+    resolvedBy: uuid("resolved_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    index("job_report_job_id_idx").on(table.jobId),
+    index("job_report_open_idx")
+      .on(table.createdAt, table.jobId)
+      .where(sql`${table.status} = 'open'`),
+    index("job_report_reporter_idx").on(table.reporterId, table.createdAt),
+    // One open report per reporter and job.
+    uniqueIndex("job_report_open_unique")
+      .on(table.jobId, table.reporterId)
+      .where(sql`${table.status} = 'open'`),
+    check(
+      "job_report_reason_check",
+      sql.raw(`reason_code in (${sqlList(REPORT_REASONS)})`),
+    ),
+    check(
+      "job_report_status_check",
+      sql.raw(
+        `(status = 'open' and resolved_at is null) or (status in ('actioned', 'dismissed') and resolved_at is not null)`,
+      ),
+    ),
+    check(
+      "job_report_details_check",
+      sql.raw(
+        `details is null or char_length(details) between 1 and ${REPORT_LIMITS.details.max}`,
       ),
     ),
   ],

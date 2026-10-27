@@ -70,7 +70,8 @@
     "unauthenticated": "Your session has ended. Sign in again.",
     "rateLimited": "Too many attempts in a short time. Wait a little, then try again.",
     "network": "Could not reach the server. Check your connection and try again.",
-    "generic": "Something went wrong. Please try again shortly."
+    "generic": "Something went wrong. Please try again shortly.",
+    "accountSuspended": "This account is suspended. If you think this is a mistake, write to support."
   },
   "SignUp": {
     "title": "Create an account",
@@ -192,7 +193,9 @@
     "verificationLink": "Verification requests",
     "jobsLink": "Job moderation",
     "rolesAdminLink": "Staff roles",
-    "auditLink": "Audit log"
+    "auditLink": "Audit log",
+    "reportsLink": "Reported jobs",
+    "accountsLink": "Accounts"
   },
   "Roles": {
     "support": "Support",
@@ -653,6 +656,12 @@
       "heading": "Job expired",
       "body": "“{title}” has expired and no longer appears on the job board. You can copy it into a new draft and publish it again.",
       "action": "View job"
+    },
+    "removed": {
+      "subject": "The job “{title}” was removed - Pharmacist Platform",
+      "heading": "The job was removed",
+      "body": "The platform team reviewed the published job “{title}” and removed it because it breaks the posting rules. It no longer appears on the job board. You can copy it into a new draft after correcting it; it will be reviewed before it is published.",
+      "action": "View the job"
     }
   },
   "JobRejectReasons": {
@@ -711,7 +720,8 @@
       "paused": "Paused and hidden from visitors. You can resume it.",
       "closed": "Closed and cannot be reopened. You can create a new copy of it.",
       "expired": "Its publication period has ended. You can create a new copy of it.",
-      "rejected": "Not accepted for publication. Edit it and send it again."
+      "rejected": "Not accepted for publication. Edit it and send it again.",
+      "removed": "Taken down by the platform team. It cannot be changed; you can create a new copy and correct it."
     },
     "rejectionHeading": "Why it was not published",
     "rejectionDate": "Review decision on {date}",
@@ -778,7 +788,9 @@
     "salaryLabel": "Pay",
     "publishedLabel": "Published",
     "backToBoard": "All jobs",
-    "applicationsLink": "Applications ({count})"
+    "applicationsLink": "Applications ({count})",
+    "removalHeading": "Why it was taken down",
+    "removalDate": "Taken down on {date}"
   },
   "JobErrors": {
     "required": "This field is required.",
@@ -798,7 +810,8 @@
     "invalidState": "This action is not possible in the job's current state. Refresh the page.",
     "limitReached": "The organization has reached its limit of open jobs. Close a job or delete a draft and try again.",
     "generic": "Something went wrong. Please try again shortly.",
-    "network": "Could not reach the server. Check your internet connection and try again."
+    "network": "Could not reach the server. Check your internet connection and try again.",
+    "duplicate": "You already have an open report on this job."
   },
   "JobStatuses": {
     "draft": "Draft",
@@ -807,7 +820,8 @@
     "paused": "Paused",
     "closed": "Closed",
     "expired": "Expired",
-    "rejected": "Not accepted"
+    "rejected": "Not accepted",
+    "removed": "Removed"
   },
   "JobCategories": {
     "pharmacist": "Pharmacist",
@@ -873,6 +887,11 @@
       "subject": "Update on your application for “{title}”",
       "heading": "Application not selected",
       "body": "The employer decided not to continue with your application for “{title}”. We wish you luck with other opportunities on the platform."
+    },
+    "job_removed": {
+      "subject": "The job “{title}” you applied to was removed",
+      "heading": "The job was removed",
+      "body": "The platform team removed the job “{title}” because it breaks the posting rules. The employer can no longer change your application. Be careful if anyone asks you for money or personal documents outside the platform."
     }
   },
   "Applications": {
@@ -1023,7 +1042,11 @@
     "role_revoked": "Role revoked",
     "verification_decided": "Verification decided",
     "job_moderated": "Job moderated",
-    "account_data_exported": "Account data exported"
+    "account_data_exported": "Account data exported",
+    "account_suspended": "Account suspended",
+    "account_reinstated": "Account reinstated",
+    "job_removed": "Job taken down",
+    "job_reports_dismissed": "Job reports dismissed"
   },
   "AuditActorKinds": {
     "staff": "Staff member",
@@ -1039,6 +1062,145 @@
   "AuditDetailKeys": {
     "role": "Role",
     "decision": "Decision",
-    "reasonCode": "Reason code"
+    "reasonCode": "Reason code",
+    "count": "Count"
+  },
+  "AccountEmail": {
+    "note": "This is a message about your account on Pharmacist Platform.",
+    "reasonLabel": "Reason",
+    "suspended": {
+      "subject": "Your account was suspended - Pharmacist Platform",
+      "heading": "Your account was suspended",
+      "body": "The platform team suspended your account. You cannot sign in until it is reinstated. If you think this is a mistake, write to support by replying to this message.",
+      "action": "Visit the platform"
+    },
+    "reinstated": {
+      "subject": "Your account was reinstated - Pharmacist Platform",
+      "heading": "Your account was reinstated",
+      "body": "The platform team reinstated your account. You can sign in again.",
+      "action": "Sign in"
+    }
+  },
+  "SuspensionReasons": {
+    "fraud_or_impersonation": "Fraud or impersonation",
+    "fake_jobs": "Fake job posts",
+    "abuse_or_harassment": "Abuse or harassment",
+    "spam": "Spam",
+    "terms_violation": "Breach of the terms of use",
+    "other": "Other reason"
+  },
+  "LiftReasons": {
+    "appeal_accepted": "Appeal accepted",
+    "issued_in_error": "Suspended in error",
+    "other": "Other reason"
+  },
+  "ReportReasons": {
+    "fake_or_scam": "Fake job or scam",
+    "contact_details_in_text": "Contains phone numbers or emails",
+    "discriminatory": "Discriminatory requirements",
+    "misleading": "Misleading information",
+    "other": "Other reason"
+  },
+  "JobReport": {
+    "summary": "Report this job",
+    "intro": "Tell the platform team if this job looks fake, misleading or breaks the rules. The employer will not see who reported it.",
+    "reasonLabel": "Reason for the report",
+    "reasonPlaceholder": "Choose a reason",
+    "detailsLabel": "Details (optional)",
+    "detailsHint": "Up to 500 characters.",
+    "submit": "Send report",
+    "sending": "Sending…",
+    "sent": "Thank you. Your report was sent to the platform team.",
+    "alreadyReported": "You reported this job. The platform team will review it."
+  },
+  "StaffReports": {
+    "queueTitle": "Reported jobs",
+    "queueIntro": "Published jobs that members reported, oldest report first. Open a job to dismiss the reports or take it down.",
+    "queueEmpty": "No jobs have open reports.",
+    "openReports": "Open reports: {count}",
+    "oldestReport": "oldest report {date}",
+    "staffLink": "Staff area",
+    "queueLink": "Back to reported jobs",
+    "detailTitle": "Reported job",
+    "reportsHeading": "Reports",
+    "noReports": "This job has no reports.",
+    "reporterGone": "Reporter account deleted",
+    "reportStatuses": {
+      "open": "Open",
+      "actioned": "Job taken down",
+      "dismissed": "Dismissed"
+    },
+    "dismissHeading": "Dismiss the reports",
+    "dismissIntro": "Use this when the job follows the rules. The job stays published.",
+    "dismiss": "Dismiss reports",
+    "dismissConfirm": "Dismiss all open reports on this job? The job will stay published.",
+    "confirmDismiss": "Yes, dismiss the reports",
+    "cancel": "Cancel",
+    "dismissed": "The reports were dismissed.",
+    "removeHeading": "Take the job down",
+    "removeIntro": "The job disappears from the board at once, its owner is told the reason, and its applications can no longer be moved. This cannot be undone.",
+    "reasonLabel": "Reason for taking it down",
+    "reasonPlaceholder": "Choose a reason",
+    "noteLabel": "Internal note (optional)",
+    "noteHint": "For staff only; the job's owner does not see it. Up to 500 characters.",
+    "remove": "Take down",
+    "removeConfirm": "The job will be taken down now, its owner and applicants will be notified. This cannot be undone.",
+    "confirmRemove": "Confirm take down",
+    "removed": "The job was taken down.",
+    "working": "Working…"
+  },
+  "StaffAccounts": {
+    "title": "Account lookup",
+    "intro": "Look up an account by its exact email to see its suspension history, suspend it or reinstate it. A suspended account cannot sign in.",
+    "emailLabel": "Account email",
+    "emailHint": "The full email address; there is no partial search.",
+    "find": "Look up",
+    "notFound": "No account has this email.",
+    "statusLabel": "Status",
+    "statusActive": "Active",
+    "statusSuspended": "Suspended",
+    "createdAt": "Created {date}",
+    "emailVerified": "Email confirmed",
+    "emailUnverified": "Email not confirmed",
+    "rolesLabel": "Staff roles",
+    "noRoles": "None",
+    "cannotActSelf": "This is your own account. You cannot suspend or reinstate yourself.",
+    "cannotActStaff": "This account holds a staff role. Only a super admin can suspend or reinstate it.",
+    "suspendHeading": "Suspend the account",
+    "reinstateHeading": "Reinstate the account",
+    "reasonLabel": "Reason for suspension",
+    "liftReasonLabel": "Reason for reinstating",
+    "reasonPlaceholder": "Choose a reason",
+    "noteLabel": "Internal note (optional)",
+    "noteHint": "For staff only; the account holder does not see it. Up to 500 characters.",
+    "suspend": "Suspend the account",
+    "suspendConfirm": "The account will be signed out everywhere and will not be able to sign in. Its holder will get an email with the reason. Continue?",
+    "confirmSuspend": "Confirm suspension",
+    "cancel": "Cancel",
+    "reinstate": "Reinstate the account",
+    "working": "Working…",
+    "suspendedDone": "The account was suspended.",
+    "reinstated": "The account was reinstated.",
+    "historyHeading": "Suspension history",
+    "historyEmpty": "This account has never been suspended.",
+    "suspendedAt": "Suspended {date}",
+    "liftedAt": "Reinstated {date}",
+    "by": "by",
+    "byUnknown": "by an account that no longer exists",
+    "note": "Internal note",
+    "stillActive": "Still suspended",
+    "staffLink": "Staff area"
+  },
+  "StaffAccountErrors": {
+    "forbidden": "You are not allowed to do this.",
+    "validation": "Check the reason and the note (up to 500 characters) and try again.",
+    "notFound": "We could not find this account. Look it up again.",
+    "self": "You cannot suspend or reinstate your own account.",
+    "staffTarget": "Only a super admin can suspend or reinstate an account that holds a staff role.",
+    "alreadySuspended": "This account is already suspended. Look it up again.",
+    "notSuspended": "This account is not suspended. Look it up again.",
+    "reasonRequired": "Choose a reason.",
+    "generic": "Something went wrong. Please try again shortly.",
+    "network": "Could not reach the server. Check your internet connection and try again."
   }
 }

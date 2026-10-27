@@ -29,6 +29,12 @@ export default async function StaffPage({ params }: Props) {
       {can(actor, "moderation.access") ? (
         <TextLink href="/staff/jobs">{t("jobsLink")}</TextLink>
       ) : null}
+      {can(actor, "moderation.access") ? (
+        <TextLink href="/staff/reports">{t("reportsLink")}</TextLink>
+      ) : null}
+      {can(actor, "account.suspend") ? (
+        <TextLink href="/staff/accounts">{t("accountsLink")}</TextLink>
+      ) : null}
       {can(actor, "roles.manage") ? (
         <TextLink href="/staff/roles">{t("rolesAdminLink")}</TextLink>
       ) : null}

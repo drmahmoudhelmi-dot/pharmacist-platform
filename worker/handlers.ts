@@ -5,6 +5,7 @@ import {
   sendApplicationNotice,
   sendJobNotice,
 } from "@/modules/jobs/jobs";
+import { sendAccountNotice } from "@/modules/identity/suspension-jobs";
 import { sendInvitationNotice } from "@/modules/organizations/jobs";
 import { failUpload, processUpload } from "@/modules/uploads/processing";
 import {
@@ -118,6 +119,20 @@ export const HANDLERS: Record<JobName, Handler> = {
         kind: payload.kind,
       });
   },
+  "account.notify": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "account.notify", data, jobId);
+    if (payload)
+      await sendAccountNotice(deps, payload.suspensionId, payload.kind);
+  },
+  "account.notify.dead": async (deps, data, jobId) => {
+    const payload = payloadOf(deps, "account.notify.dead", data, jobId);
+    if (payload)
+      deps.logger.error({
+        event: "account.notice_failed",
+        suspensionId: payload.suspensionId,
+        kind: payload.kind,
+      });
+  },
   "jobs.expire": async (deps, data, jobId) => {
     if (payloadOf(deps, "jobs.expire", data, jobId)) await expireJobs(deps);
   },
@@ -155,6 +170,8 @@ const CONCURRENCY: Record<JobName, number> = {
   "jobs.notify": 2,
   "jobs.notify.dead": 1,
   "jobs.expire": 1,
+  "account.notify": 2,
+  "account.notify.dead": 1,
 };
 
 export async function registerHandlers(boss: PgBoss, deps: WorkerDeps) {

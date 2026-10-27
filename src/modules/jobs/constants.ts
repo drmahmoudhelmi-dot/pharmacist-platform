@@ -12,6 +12,8 @@ export const JOB_STATUSES = [
   "closed",
   "expired",
   "rejected",
+  // Taken down by a moderator after publication (ADR-009); final.
+  "removed",
 ] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
@@ -31,7 +33,11 @@ export const EMPLOYMENT_TYPES = [
 ] as const;
 export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
 
-export const MODERATION_DECISIONS = ["approved", "rejected"] as const;
+export const MODERATION_DECISIONS = [
+  "approved",
+  "rejected",
+  "removed",
+] as const;
 export type ModerationDecision = (typeof MODERATION_DECISIONS)[number];
 
 export const APPROVE_REASONS = ["meets_guidelines"] as const;
@@ -44,10 +50,24 @@ export const REJECT_REASONS = [
   "other",
 ] as const;
 export type RejectReason = (typeof REJECT_REASONS)[number];
+/** Takedown of a live job (ADR-009): a subset of the rejection reasons. */
+export const REMOVE_REASONS = [
+  "misleading_or_fraud",
+  "contact_details_in_text",
+  "discriminatory",
+  "not_pharmacy_related",
+  "other",
+] as const satisfies readonly RejectReason[];
+export type RemoveReason = (typeof REMOVE_REASONS)[number];
 export const REASON_CODES = [...APPROVE_REASONS, ...REJECT_REASONS] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 
-export const NOTIFICATION_KINDS = ["approved", "rejected", "expired"] as const;
+export const NOTIFICATION_KINDS = [
+  "approved",
+  "rejected",
+  "expired",
+  "removed",
+] as const;
 export type JobNotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export const EMAIL_LOCALES = ["ar", "en"] as const;
@@ -62,10 +82,11 @@ export const TRANSITIONS: Readonly<Record<JobStatus, readonly JobStatus[]>> = {
   // A rejected job always goes back to review.
   rejected: ["pending_review"],
   pending_review: ["published", "rejected"],
-  published: ["paused", "closed", "expired"],
-  paused: ["published", "closed", "expired"],
+  published: ["paused", "closed", "expired", "removed"],
+  paused: ["published", "closed", "expired", "removed"],
   closed: [],
   expired: [],
+  removed: [],
 };
 
 /** Statuses whose content may be edited (and that may be deleted). */
@@ -87,6 +108,32 @@ export const LIMITS = {
   openJobsPerOrganization: 50,
   pageSize: 20,
   searchQuery: { max: 80 },
+  /** Every submission is moderated this long after a takedown (ADR-009). */
+  removalLookbackDays: 90,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Reports (ADR-009)
+
+export const REPORT_REASONS = [
+  "fake_or_scam",
+  "contact_details_in_text",
+  "discriminatory",
+  "misleading",
+  "other",
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_STATUSES = ["open", "actioned", "dismissed"] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+/** Statuses a job can be reported in: only what the board shows. */
+export const REPORTABLE: readonly JobStatus[] = ["published"];
+
+export const REPORT_LIMITS = {
+  details: { max: 500 },
+  perReporterPerDay: 10,
+  queueSize: 100,
 } as const;
 
 function includes<T extends string>(
@@ -108,6 +155,10 @@ export const isRejectReason = (v: unknown): v is RejectReason =>
   includes(REJECT_REASONS, v);
 export const isReasonCode = (v: unknown): v is ReasonCode =>
   includes(REASON_CODES, v);
+export const isRemoveReason = (v: unknown): v is RemoveReason =>
+  includes(REMOVE_REASONS, v);
+export const isReportReason = (v: unknown): v is ReportReason =>
+  includes(REPORT_REASONS, v);
 export const isEmailLocale = (v: unknown): v is EmailLocale =>
   includes(EMAIL_LOCALES, v);
 
@@ -159,6 +210,8 @@ export const APPLICATION_NOTICE_KINDS = [
   "shortlisted",
   "accepted",
   "rejected",
+  // The job was taken down by moderation (ADR-009).
+  "job_removed",
 ] as const;
 export type ApplicationNoticeKind = (typeof APPLICATION_NOTICE_KINDS)[number];
 

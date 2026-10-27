@@ -94,6 +94,22 @@ export default async function ManageJobPage({ params }: Props) {
           </p>
         </section>
       ) : null}
+      {job.removal ? (
+        <section
+          aria-labelledby="removal-heading"
+          role="status"
+          className="flex flex-col gap-1 rounded-lg border border-red-700 bg-red-50 p-3 text-red-900"
+          data-testid="job-removal"
+        >
+          <h2 id="removal-heading" className="text-lg font-semibold">
+            {t("removalHeading")}
+          </h2>
+          <p>{tr(job.removal.reasonCode)}</p>
+          <p className="text-sm">
+            {t("removalDate", { date: date(job.removal.decidedAt) })}
+          </p>
+        </section>
+      ) : null}
       <section
         aria-labelledby="actions-heading"
         className="flex flex-col gap-3"

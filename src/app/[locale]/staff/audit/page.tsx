@@ -14,7 +14,7 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const DETAIL_KEYS = ["role", "decision", "reasonCode"] as const;
+const DETAIL_KEYS = ["role", "decision", "reasonCode", "count"] as const;
 
 const first = (v: string | string[] | undefined) =>
   (Array.isArray(v) ? v[0] : v)?.slice(0, 254) || undefined;

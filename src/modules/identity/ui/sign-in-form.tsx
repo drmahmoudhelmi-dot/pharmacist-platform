@@ -92,7 +92,8 @@ export function SignInForm() {
     setError(result.error);
     if (
       result.error === "twoFactorExpired" ||
-      result.error === "twoFactorTooManyAttempts"
+      result.error === "twoFactorTooManyAttempts" ||
+      result.error === "accountSuspended"
     ) {
       setStep("password");
     }

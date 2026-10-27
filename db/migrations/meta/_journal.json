@@ -78,6 +78,13 @@
       "when": 1793032633845,
       "tag": "0010_admin_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793034964518,
+      "tag": "0011_moderation",
+      "breakpoints": true
     }
   ]
 }
