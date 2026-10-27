@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { formatCount } from "@/shared/i18n/format";
 import { formatMonth } from "@/modules/profiles/ui/format";
 import { VerifiedBadge } from "@/modules/profiles/ui/profile-view";
 import type { ApplicationSnapshot } from "../application-snapshot";
@@ -46,7 +47,10 @@ export async function ApplicantSnapshot({
             {tp(`careerStages.${profile.careerStage}`)}
           </li>
           <li className="rounded bg-canvas px-2 py-1">
-            {t("yearsExperience", { count: profile.yearsExperience })}
+            {t("yearsExperience", {
+              count: profile.yearsExperience,
+              formatted: formatCount(profile.yearsExperience, locale),
+            })}
           </li>
           {governorate ? (
             <li className="rounded bg-canvas px-2 py-1">{governorate}</li>

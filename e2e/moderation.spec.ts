@@ -164,6 +164,13 @@ test("a reported job is taken down and a member is suspended, then reinstated (3
 
   // --- The moderator finds it in the reports queue and opens it.
   await mod.page.goto("/staff");
+  // The staff home shows the moderator's duty cards with live counts; this
+  // job has an open report, so that count is not zero.
+  await expect(mod.page.getByTestId("staff-card-jobs")).toBeVisible();
+  await expect(mod.page.getByTestId("staff-count-jobs")).toBeVisible();
+  await expect(mod.page.getByTestId("staff-count-reports")).toHaveText(/[١-٩]/);
+  await expect(mod.page.getByTestId("staff-card-verification")).toHaveCount(0);
+  await expectNoHorizontalScroll(mod.page);
   await mod.page.getByRole("link", { name: "الوظائف المُبلَّغ عنها" }).click();
   await expect(mod.page).toHaveURL(/\/staff\/reports$/);
   await expect(mod.page.locator("html")).toHaveAttribute("dir", "rtl");

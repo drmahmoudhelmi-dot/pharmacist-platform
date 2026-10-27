@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
+import { formatCount } from "@/shared/i18n/format";
 import { isRejectReason } from "@/modules/uploads/constants";
 
 // One photo for a verification document: uploads it to POST /api/uploads with
@@ -58,6 +59,7 @@ export function DocumentUpload({
   /** Localized error from the last submit, if the server refused this photo. */
   serverError?: string;
 }) {
+  const locale = useLocale();
   const t = useTranslations("Verification");
   const tu = useTranslations("UploadErrors");
   const ts = useTranslations("UploadStatus");
@@ -130,7 +132,9 @@ export function DocumentUpload({
   let tone: "info" | "ok" | "error" = "info";
   switch (state.phase) {
     case "uploading":
-      message = t("uploadProgress", { percent: state.percent });
+      message = t("uploadProgress", {
+        percent: formatCount(state.percent, locale),
+      });
       break;
     case "processing":
       message = ts("processing");

@@ -1,7 +1,7 @@
 {
   "Home": {
     "productName": "Pharmacist Platform",
-    "tagline": "An Egyptian platform for pharmacists: jobs, professional verification and opportunities in one place.",
+    "tagline": "A professional profile you can verify, and pharmacy jobs in Egypt, in one place.",
     "switchLanguage": "العربية",
     "signIn": "Sign in",
     "signUp": "Create account",
@@ -9,7 +9,84 @@
     "myAccount": "My account",
     "myOrganizations": "My organizations",
     "jobs": "Jobs",
-    "myApplications": "My applications"
+    "myApplications": "My applications",
+    "heroNote": "For pharmacists looking for work, and for pharmacies and chains building their teams.",
+    "pharmacists": {
+      "title": "For pharmacists",
+      "intro": "Build your professional profile and apply with confidence.",
+      "items": {
+        "profile": {
+          "title": "A professional profile you can verify",
+          "text": "Create your profile with your experience and specialties, then verify your identity and syndicate membership (or student card). Our staff review them, and a verified badge appears on your profile."
+        },
+        "jobs": {
+          "title": "Browse and apply to jobs",
+          "text": "Search pharmacy jobs by governorate, category and employment type, apply, and follow the status of each application."
+        },
+        "privacy": {
+          "title": "You control what you share",
+          "text": "Employers get what is on your public profile at the time you apply, never your email address. Your phone number is shared only if you choose to."
+        }
+      }
+    },
+    "pharmacies": {
+      "title": "For pharmacies and chains",
+      "intro": "Run your organization's hiring together with your team.",
+      "items": {
+        "organization": {
+          "title": "Create your organization",
+          "text": "Register your pharmacy or chain and add its details and team."
+        },
+        "recruiters": {
+          "title": "Invite recruiters",
+          "text": "Invite the people who will manage jobs and applications by email. Everyone keeps their own account."
+        },
+        "post": {
+          "title": "Post your jobs",
+          "text": "Write the job and submit it. Each organization's first job is reviewed before it appears on the job board."
+        },
+        "review": {
+          "title": "Review applications",
+          "text": "Read incoming applications and move each one to under review, shortlisted, accepted or rejected."
+        }
+      }
+    },
+    "trust": {
+      "title": "Trust and safety",
+      "intro": "We review verification and each organization's first job, and you can report anything suspicious.",
+      "items": {
+        "verification": {
+          "title": "Identity and membership verification",
+          "text": "Platform staff check verification documents by hand (national ID and syndicate or university card) before a verified badge appears on a profile."
+        },
+        "moderation": {
+          "title": "First job posts are reviewed",
+          "text": "Each organization's first job post is reviewed before it goes live, as are posts from members who are not verified."
+        },
+        "reports": {
+          "title": "Report suspicious jobs",
+          "text": "Any member can report a job. Moderators review the report and may take the job down."
+        }
+      },
+      "note": "Organization details are entered by their members and are not reviewed by the platform."
+    },
+    "how": {
+      "title": "How it works",
+      "steps": {
+        "account": {
+          "title": "Create your account",
+          "text": "Sign up with your email and confirm it."
+        },
+        "setup": {
+          "title": "Set up your profile or organization",
+          "text": "Complete your professional profile, or create your organization and invite your team."
+        },
+        "start": {
+          "title": "Apply or post",
+          "text": "Apply to jobs, or post yours and review the applications."
+        }
+      }
+    }
   },
   "Meta": {
     "title": "Pharmacist Platform",
@@ -188,14 +265,23 @@
   },
   "Staff": {
     "title": "Staff area",
-    "body": "Staff tools arrive with the admin step. Your access is protected by two-step verification.",
+    "body": "Choose the task you want to work on. Your access is protected by two-step verification.",
     "rolesLabel": "Your roles",
     "verificationLink": "Verification requests",
     "jobsLink": "Job moderation",
     "rolesAdminLink": "Staff roles",
     "auditLink": "Audit log",
     "reportsLink": "Reported jobs",
-    "accountsLink": "Accounts"
+    "accountsLink": "Accounts",
+    "verificationDescription": "Review identity and membership verification requests, oldest first.",
+    "verificationCount": "awaiting review",
+    "jobsDescription": "Approve or reject organizations' first job posts before they go live.",
+    "jobsCount": "awaiting review",
+    "reportsDescription": "Published jobs that members have reported, for you to act on.",
+    "reportsCount": "with open reports",
+    "accountsDescription": "Look up an account by email, then suspend or reinstate it.",
+    "rolesDescription": "Grant or revoke staff roles by email, for verified members only.",
+    "auditDescription": "An append-only record of every admin action, with filters."
   },
   "Roles": {
     "support": "Support",
@@ -317,7 +403,7 @@
     "ownerNotice": "This is a preview of your profile as members see it.",
     "hiddenNotice": "Your profile is hidden. No one else can see it.",
     "editLink": "Edit my profile",
-    "yearsExperience": "{count, plural, =0 {Less than a year of experience} one {# year of experience} other {# years of experience}}",
+    "yearsExperience": "{count, plural, =0 {Less than a year of experience} one {{formatted} year of experience} other {{formatted} years of experience}}",
     "openToWork": "Looking for work",
     "bioHeading": "About",
     "specialtiesHeading": "Areas of work",
@@ -1124,6 +1210,12 @@
     "detailTitle": "Reported job",
     "reportsHeading": "Reports",
     "noReports": "This job has no reports.",
+    "reportReason": "Reason",
+    "reportDetails": "Details",
+    "reportNoDetails": "No details",
+    "reportReporter": "Reporter",
+    "reportDate": "Date and time (Cairo)",
+    "reportStatus": "Status",
     "reporterGone": "Reporter account deleted",
     "reportStatuses": {
       "open": "Open",

@@ -2,13 +2,15 @@
 // (`YYYY-MM-01`) with no time of day, so they are formatted in UTC to avoid
 // any time-zone shift.
 
+import { intlLocale } from "@/shared/i18n/format";
+
 function utcDate(year: number, month: number) {
   return new Date(Date.UTC(year, month - 1, 1));
 }
 
 /** Localized month names, January first. */
 export function monthNames(locale: string): string[] {
-  const format = new Intl.DateTimeFormat(locale, {
+  const format = new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     timeZone: "UTC",
   });
@@ -21,7 +23,7 @@ export function monthNames(locale: string): string[] {
 export function formatMonth(locale: string, value: string): string {
   const [year, month] = value.split("-").map(Number);
   if (!year || !month) return value;
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
     timeZone: "UTC",

@@ -62,27 +62,36 @@ export default async function ReportedJobPage({ params }: Props) {
             {job.reports.map((r) => (
               <li
                 key={r.id}
-                className="flex flex-col gap-1 rounded-lg border border-muted bg-surface p-3"
+                className="rounded-lg border border-muted bg-surface p-3"
                 data-testid="report"
                 data-status={r.status}
               >
-                <span className="font-semibold">{tr(r.reasonCode)}</span>
-                {r.details ? (
-                  <bdi className="break-words text-sm">{r.details}</bdi>
-                ) : null}
-                <span className="text-sm text-muted">
-                  {r.reporterEmail ? (
-                    <bdi dir="ltr" className="break-all">
-                      {r.reporterEmail}
-                    </bdi>
-                  ) : (
-                    t("reporterGone")
-                  )}
-                  {" · "}
-                  {format.format(new Date(r.createdAt))}
-                  {" · "}
-                  {t(`reportStatuses.${r.status}`)}
-                </span>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2">
+                  <dt className="font-semibold">{t("reportReason")}</dt>
+                  <dd>{tr(r.reasonCode)}</dd>
+                  <dt className="font-semibold">{t("reportDetails")}</dt>
+                  <dd>
+                    {r.details ? (
+                      <bdi className="break-words">{r.details}</bdi>
+                    ) : (
+                      <span className="text-muted">{t("reportNoDetails")}</span>
+                    )}
+                  </dd>
+                  <dt className="font-semibold">{t("reportReporter")}</dt>
+                  <dd className="min-w-0">
+                    {r.reporterEmail ? (
+                      <bdi dir="ltr" className="break-all">
+                        {r.reporterEmail}
+                      </bdi>
+                    ) : (
+                      t("reporterGone")
+                    )}
+                  </dd>
+                  <dt className="font-semibold">{t("reportDate")}</dt>
+                  <dd>{format.format(new Date(r.createdAt))}</dd>
+                  <dt className="font-semibold">{t("reportStatus")}</dt>
+                  <dd>{t(`reportStatuses.${r.status}`)}</dd>
+                </dl>
               </li>
             ))}
           </ul>
